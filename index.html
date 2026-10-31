@@ -24,7 +24,7 @@
     background:var(--panel2); border:1px solid var(--line); color:var(--ink);
     padding:5px 10px; border-radius:6px; cursor:pointer; white-space:nowrap;
   }
-  #bar button, #bar select{flex:none}
+  #bar button, #bar select, #fname{flex:none}
   button:hover{background:#363a43}
   button.pri{background:var(--accent); border-color:var(--accent); color:#1b1206; font-weight:600}
   button.pri:hover{filter:brightness(1.08)}
@@ -46,21 +46,56 @@
   #bar .brand span{color:var(--accent)}
   .sep{width:1px;height:24px;background:var(--line);margin:0 2px}
   .grow{flex:1}
-  #main{display:flex; height:calc(100% - 48px)}
+  #main{display:flex; height:calc(100% - 48px); overflow:hidden; position:relative}
+  .paneltog{
+    position:absolute;top:10px;z-index:30;width:27px;height:27px;padding:0;
+    display:flex;align-items:center;justify-content:center;font-size:12px;opacity:.7;
+    transition:left .24s cubic-bezier(.4,0,.2,1), right .24s cubic-bezier(.4,0,.2,1), opacity .15s;
+  }
+  .paneltog:hover{opacity:1}
+  #btnTogglePages{left:160px}
+  #btnToggleInsp{right:262px}
+  body.nopages #btnTogglePages{left:10px}
+  body.noinsp  #btnToggleInsp{right:10px}
   #pagesPane{
     width:150px; flex:none; background:var(--panel); border-right:1px solid var(--line);
     display:flex; flex-direction:column;
   }
+  #pageFind{padding:8px 8px 2px;border-bottom:1px solid var(--line);position:relative;flex:none}
+  #pageSearch{width:100%;padding:5px 20px 5px 7px;font-size:12px}
+  #pageSearchX{
+    position:absolute;right:12px;top:9px;width:19px;height:19px;padding:0;
+    background:none;border:0;color:var(--dim);font-size:15px;line-height:1;
+    display:none;align-items:center;justify-content:center;border-radius:4px;
+  }
+  #pageSearchX:hover{color:var(--ink);background:#33373f}
+  #pageFind.has #pageSearchX{display:flex}
+  #pageFindCount{font-size:11px;color:var(--dim);padding:5px 2px 4px;display:none}
+  #pageFind.has #pageFindCount{display:block}
+  .pthumb .snip{
+    font-size:11px;color:var(--dim);line-height:1.38;margin-top:4px;
+    max-height:44px;overflow:hidden;
+  }
+  .pthumb .snip mark{background:rgba(192,138,74,.4);color:var(--ink);border-radius:2px;padding:0 1px}
+  .pthumb .hitkind{font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--accent)}
+  .pfnone{color:var(--dim);font-size:12px;padding:12px 4px;line-height:1.5}
   #pageList{flex:1; overflow:auto; padding:8px}
   .pthumb{
     border:2px solid transparent; border-radius:6px; margin-bottom:8px; cursor:pointer;
     background:var(--panel2); padding:4px; position:relative;
   }
   .pthumb.sel{border-color:var(--accent)}
+  .pthumb{transition:transform .16s cubic-bezier(.2,.7,.3,1)}
+  .pthumb.ghost{visibility:hidden}
+  .pthumb.flying{
+    position:fixed;z-index:500;margin:0;pointer-events:none;transition:none;
+    box-shadow:0 16px 38px rgba(0,0,0,.62);border-color:var(--accent);
+    transform:scale(1.04) rotate(-1.5deg);opacity:.97;
+  }
+  .pthumb.flying canvas{width:100%;height:auto}
   .pthumb canvas{display:block;width:100%;height:auto;background:#fff;border-radius:3px}
   .pthumb .n{font-size:11px;color:var(--dim);margin-top:3px;display:flex;justify-content:space-between;gap:4px}
   .pthumb .n b{color:var(--ink);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  #pagesFoot{padding:8px;border-top:1px solid var(--line);display:flex;flex-wrap:wrap;gap:4px}
 
   #stageWrap{flex:1; overflow:auto; position:relative; display:flex}
   #stage{margin:auto; padding:28px}
@@ -87,6 +122,12 @@
   .zone.selzone{z-index:50}
   .selbox{position:absolute;pointer-events:none;z-index:60}
   .selbox .edge{position:absolute;inset:0;border:1.5px solid var(--accent2);box-shadow:0 0 0 1px rgba(0,0,0,.25)}
+  .pguide{position:absolute;pointer-events:none;z-index:58;filter:drop-shadow(0 0 1.5px rgba(0,0,0,.7))}
+  .pguide.v{top:-1.5%;height:103%;width:0;border-left:1.5px dashed #ff5aa6;margin-left:-.75px}
+  .pguide.h{left:-1.5%;width:103%;height:0;border-top:1.5px dashed #ff5aa6;margin-top:-.75px}
+  .selbox .gv,.selbox .gh{position:absolute;pointer-events:none;filter:drop-shadow(0 0 1.5px rgba(0,0,0,.85))}
+  .selbox .gv{left:50%;top:-7%;height:114%;border-left:1.5px dashed #7fd4ff;margin-left:-.75px}
+  .selbox .gh{top:50%;left:-7%;width:114%;border-top:1.5px dashed #7fd4ff;margin-top:-.75px}
   .h{position:absolute;width:var(--hs);height:var(--hs);background:#fff;
      border:1.5px solid var(--accent2);border-radius:2px;pointer-events:auto}
   .h.nw{left:calc(var(--hs)/-2);top:calc(var(--hs)/-2);cursor:nwse-resize}
@@ -97,6 +138,15 @@
   .h.s{left:50%;bottom:calc(var(--hs)/-2);margin-left:calc(var(--hs)/-2);cursor:ns-resize}
   .h.w{left:calc(var(--hs)/-2);top:50%;margin-top:calc(var(--hs)/-2);cursor:ew-resize}
   .h.e{right:calc(var(--hs)/-2);top:50%;margin-top:calc(var(--hs)/-2);cursor:ew-resize}
+  .selbox .imgbox{position:absolute;border:1px dashed rgba(192,138,74,.95);pointer-events:none}
+  .selbox .ih{
+    position:absolute;width:13px;height:13px;border-radius:50%;background:var(--accent);
+    border:1.5px solid #19120a;pointer-events:auto;box-shadow:0 1px 3px rgba(0,0,0,.55);
+  }
+  .selbox .ih.nw{left:-2px;top:-2px;cursor:nwse-resize}
+  .selbox .ih.ne{right:-2px;top:-2px;cursor:nesw-resize}
+  .selbox .ih.sw{left:-2px;bottom:-2px;cursor:nesw-resize}
+  .selbox .ih.se{right:-2px;bottom:-2px;cursor:nwse-resize}
   .movebar{
     position:absolute;left:0;right:0;top:-24px;height:20px;background:var(--accent2);color:#0d1a22;
     border-radius:4px;display:flex;align-items:center;gap:6px;padding:0 6px;font-size:11px;font-weight:600;
@@ -109,6 +159,14 @@
     width:252px;flex:none;background:var(--panel);border-left:1px solid var(--line);
     overflow:auto;padding:12px;
   }
+  .sechead{
+    cursor:pointer;user-select:none;display:flex;align-items:center;gap:6px;
+    padding:2px 0;border-radius:4px;
+  }
+  .sechead:hover{color:var(--ink)}
+  .sechead .chev{font-size:9px;opacity:.7;width:8px;flex:none;transition:transform .13s ease}
+  .sechead.collapsed{opacity:.72}
+  .sectbar{display:flex;justify-content:flex-end;margin:2px 0 2px}
   #insp h3{margin:0 0 2px;font-size:13px;letter-spacing:.03em;text-transform:uppercase;color:var(--accent)}
   #insp .hint{color:var(--dim);font-size:12px;margin:6px 0 14px}
   .row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
@@ -117,11 +175,13 @@
   hr{border:0;border-top:1px solid var(--line);margin:14px 0}
 
   /* ---------- modal ---------- */
-  .modal{position:fixed;inset:0;background:rgba(10,11,13,.72);display:none;z-index:200;overflow:auto}
-  .modal.open{display:block}
+  .modal{position:fixed;inset:0;background:rgba(10,11,13,.72);display:none;z-index:200;
+         overflow:auto;padding:24px}
+  /* margin:auto inside a flex box centres both ways and still scrolls when tall */
+  .modal.open{display:flex}
   .sheet{
-    background:var(--panel);max-width:860px;margin:40px auto;border:1px solid var(--line);
-    border-radius:12px;padding:20px;
+    background:var(--panel);max-width:860px;width:100%;margin:auto;border:1px solid var(--line);
+    border-radius:12px;padding:20px;max-height:calc(100vh - 48px);overflow:auto;
   }
   .sheet h2{margin:0 0 4px;font-size:18px}
   .sheet p.sub{margin:0 0 16px;color:var(--dim)}
@@ -144,7 +204,25 @@
     z-index:300;opacity:0;transition:opacity .2s;pointer-events:none;max-width:70vw;
   }
   #toast.show{opacity:1}
-  .kb{font-size:11.5px;color:var(--dim);line-height:1.7}
+  .intro{font-size:13px;color:var(--ink);line-height:1.6}
+  .intro p{margin:0 0 11px}
+  .intro p:last-child{margin-bottom:10px}
+  .tlink{color:var(--accent);text-decoration:underline;text-underline-offset:2px;cursor:pointer}
+  .tlink:hover{filter:brightness(1.15)}
+  .frow{display:flex;gap:10px;margin-bottom:10px}
+  .frow>*{flex:1;min-width:0}
+  .fld-in{
+    width:100%;background:#1f2126;border:1px solid var(--line);border-radius:7px;
+    padding:9px 11px;font-size:13px;color:var(--ink);
+  }
+  .fld-in:focus{outline:none;border-color:var(--accent2)}
+  .fld-in::placeholder{color:#767b85}
+  textarea.fld-in{min-height:118px;resize:vertical;line-height:1.5}
+  .hp{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}
+  .fnote{font-size:11.5px;color:var(--dim);line-height:1.6;margin-top:10px}
+  .fok{color:#5cb85c;font-size:13px;margin-top:10px}
+  .ferr{color:#e38080;font-size:13px;margin-top:10px}
+  .kb{font-size:11.5px;color:var(--dim);line-height:1.7;border-top:1px solid var(--line);padding-top:13px}
   .kb b{color:var(--ink);font-weight:600;background:#1f2126;border:1px solid var(--line);border-radius:4px;padding:0 4px}
 
   /* ---------- touch + small screens ---------- */
@@ -163,6 +241,22 @@
     position:fixed;right:14px;bottom:14px;z-index:115;
     background:var(--accent2);border-color:var(--accent2);color:#0d1a22;font-weight:600;
     padding:11px 16px;border-radius:24px;box-shadow:0 4px 16px rgba(0,0,0,.45);
+  }
+  @media (min-width:921px){
+    /* The panels float above the canvas rather than sitting in the flow, so
+       sliding one away moves nothing but the panel itself. */
+    #pagesPane,#insp{
+      position:absolute;top:0;bottom:0;z-index:20;
+      transition:transform .24s cubic-bezier(.4,0,.2,1), opacity .17s ease;
+    }
+    #pagesPane{left:0}
+    #insp{right:0}
+    #stageWrap{width:100%}
+    body.nopages #pagesPane{transform:translateX(-100%);opacity:0;pointer-events:none}
+    body.noinsp  #insp{transform:translateX(100%);opacity:0;pointer-events:none}
+  }
+  @media (prefers-reduced-motion:reduce){
+    #pagesPane,#insp,.pthumb{transition:none}
   }
   @media (max-width:920px){
     #bar{overflow-x:auto;overflow-y:hidden;gap:5px;padding:0 8px;scrollbar-width:none}
@@ -184,17 +278,44 @@
     #stageWrap{width:100%}
     #stage{padding:10px}
     #fab.show{display:inline-flex}
-    .sheet{margin:16px auto;padding:16px}
+    .modal{padding:12px}
+    .sheet{padding:16px;max-height:calc(100vh - 24px)}
   }
   #fab{display:none}
+  .rrow{
+    display:flex;align-items:center;gap:10px;padding:9px 10px;border:1px solid var(--line);
+    border-radius:8px;margin-bottom:7px;cursor:pointer;background:var(--panel2);
+  }
+  .rrow:hover{border-color:var(--accent)}
+  .rrow .meta{flex:1;min-width:0}
+  .rrow .t{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .rrow .s{font-size:11.5px;color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .rrow .x{opacity:.45;padding:2px 8px;border-radius:5px;flex:none;font-size:15px}
+  .rrow .x:hover{opacity:1;background:#8c3b3b;color:#fff}
+  .rempty{color:var(--dim);font-size:13px;padding:4px 2px 12px}
+  #ctx{
+    position:fixed;z-index:400;background:var(--panel2);border:1px solid var(--line);
+    border-radius:8px;padding:4px;min-width:178px;display:none;
+    box-shadow:0 12px 34px rgba(0,0,0,.6);
+  }
+  #ctx.on{display:block}
+  #ctx button{display:block;width:100%;text-align:left;background:none;border:0;padding:7px 10px;border-radius:5px}
+  #ctx button:hover:not([disabled]){background:var(--accent2);color:#0d1a22}
+  #ctx button[disabled]{opacity:.35;cursor:default}
+  #ctx hr{margin:4px 2px}
+  .pthumb input.rename{
+    width:100%;font-size:11px;padding:1px 4px;margin-top:2px;
+    background:#15171b;border:1px solid var(--accent2);border-radius:4px;color:var(--ink);
+  }
+  .pthumb .n b{cursor:text}
   #fname{
     font-size:12px;color:var(--ink);background:#1f2126;border:1px solid var(--line);
     border-radius:6px;padding:4px 8px;max-width:190px;overflow:hidden;text-overflow:ellipsis;
     white-space:nowrap;
   }
   #fname.unsaved{color:var(--dim);font-style:italic}
-  .local{font-size:11px;color:var(--dim);display:flex;align-items:center;gap:5px;white-space:nowrap}
-  .local .dot{width:7px;height:7px;border-radius:50%;background:#5cb85c;flex:none}
+  .local{font-size:11px;color:var(--dim);display:flex;align-items:flex-start;gap:7px;line-height:1.55}
+  .local .dot{width:7px;height:7px;border-radius:50%;background:#5cb85c;flex:none;margin-top:4px}
 </style>
 </head>
 <body>
@@ -202,9 +323,11 @@
 <header id="bar">
   <div class="brand">Scrapbook&nbsp;<span>Press</span></div>
   <button class="onlySmall" id="btnPagesDrawer" title="Pages">☰</button>
+
   <div class="sep hideSmall"></div>
   <button id="btnPhotos" class="pri" title="Add photos from this device">Add photos</button>
   <button id="btnTemplate">Templates…</button>
+  <button id="btnAddPage" title="Add a page (Ctrl+M)">+ Page</button>
   <button id="btnAddImg" title="Add an image zone">+ Image</button>
   <button id="btnAddTxt" title="Add a text zone">+ Text</button>
   <div class="sep"></div>
@@ -217,10 +340,10 @@
     <option value="1.5">150%</option>
   </select>
   <div class="grow"></div>
-  <span id="fname" title="Current project file">unsaved</span>
-  <button id="btnSave">Save</button>
-  <button id="btnSaveAs">Save as…</button>
-  <button id="btnOpen">Open…</button>
+  <span id="fname" title="The file on this computer that holds every page">no project file</span>
+  <button id="btnSave" title="Write all pages back to your project file on this computer">Save project</button>
+  <button id="btnSaveAs" title="Choose where to keep your project file on this computer">Save project as…</button>
+  <button id="btnOpen" title="Open a project file from this computer">Open project…</button>
   <div class="sep"></div>
   <button id="btnExportPng">PNG</button>
   <button id="btnExportPdf" class="pri">Export PDF</button>
@@ -228,15 +351,15 @@
 </header>
 
 <div id="main">
+  <button id="btnTogglePages" class="paneltog hideSmall"></button>
+  <button id="btnToggleInsp" class="paneltog hideSmall"></button>
   <aside id="pagesPane">
-    <div id="pageList"></div>
-    <div id="pagesFoot">
-      <button class="sm" id="btnPageAdd">+ Page</button>
-      <button class="sm" id="btnPageDup">Duplicate</button>
-      <button class="sm" id="btnPageUp">↑</button>
-      <button class="sm" id="btnPageDown">↓</button>
-      <button class="sm" id="btnPageDel">Delete</button>
+    <div id="pageFind">
+      <input type="text" id="pageSearch" placeholder="Find page / text" spellcheck="false">
+      <button id="pageSearchX" title="Clear the search">\u00D7</button>
+      <div id="pageFindCount"></div>
     </div>
+    <div id="pageList"></div>
   </aside>
 
   <div id="stageWrap">
@@ -263,6 +386,52 @@
       <div class="grow"></div>
       <button id="btnSaveTpl">Save this page as a template</button>
       <button onclick="closeModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="mContact">
+  <div class="sheet" style="max-width:520px">
+    <h2>Get in touch</h2>
+    <p class="sub">Tell me what’s working, what isn’t, or what you’d like it to do.</p>
+    <form id="contactForm" autocomplete="on">
+      <div class="frow">
+        <input class="fld-in" id="cName" name="name" type="text" placeholder="Your name">
+        <input class="fld-in" id="cMail" name="email" type="email" placeholder="Your email">
+      </div>
+      <div class="frow">
+        <textarea class="fld-in" id="cMsg" name="message" placeholder="Type your message here"></textarea>
+      </div>
+      <input class="hp" id="cHp" name="botcheck" type="text" tabindex="-1" aria-hidden="true">
+      <div id="cStatus"></div>
+      <div class="fnote" id="cNote"></div>
+      <div class="mfoot">
+        <button type="button" onclick="closeModal()">Cancel</button>
+        <button type="submit" class="pri" id="cSend">Send</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="modal" id="mStart">
+  <div class="sheet" style="max-width:560px">
+    <h2>Welcome back</h2>
+    <p class="sub">Pick up where you left off, or start something new.</p>
+    <div id="startList"></div>
+    <div class="mfoot" style="justify-content:center">
+      <button id="btnStartFresh">Start New Project</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="mRecent">
+  <div class="sheet" style="max-width:560px">
+    <h2>Open a project</h2>
+    <p class="sub">Projects you have worked on recently, newest first.</p>
+    <div id="recentList"></div>
+    <div class="mfoot">
+      <button onclick="closeModal()">Cancel</button>
+      <button class="pri" id="btnBrowse">Browse…</button>
     </div>
   </div>
 </div>
@@ -309,31 +478,26 @@
 
 <div class="modal" id="mHelp">
   <div class="sheet" style="max-width:520px">
-    <h2>Scrapbook Press — how it works</h2>
-    <p class="sub">The point is that a page should take two minutes, not forty.</p>
+    <h2>Scrapbook Press</h2>
+    <div class="intro">
+      <p>Welcome to Scrapbook Press, a free tool for arranging photos and text for easy exports into booklet publications.</p>
+      <p>I’ve designed the website to work by saving projects as a json file copy to your local desktop that is pulled into the editor and saved automatically every minute. You can press “Save project” to manually save or press ctrl+s. Using “Save project as…” creates a new file. After saving your first file on your next startup a pop-up will ask if you want to continue your last project or begin a new one.</p>
+      <p>This avoids any sign in to an external database, so nothing outside your local machine holds your photobook.</p>
+      <p>The program comes with about a dozen templates of pages and you can start and save your own for future use.</p>
+      <p>Please feel free to contact me for any <a href="#" class="tlink" id="feedbackLink">feedback</a>.</p>
+    </div>
     <div class="kb">
-      1. Pick a template for the page.<br>
-      2. Add photos — tap <b>Add photo</b> on any empty zone, or <b>Add photos</b> in the toolbar to fill
-         several zones at once. On a computer you can also drag photos from a folder straight onto the page.<br>
-      3. Drag inside a photo to re-centre it. Pinch, scroll-wheel, or the Zoom slider to crop.<br>
-      4. Click a text zone and write as much or as little as you want.<br>
-      5. <b>Save as…</b> once to choose a project file; after that <b>Ctrl/⌘+S</b> writes straight back to it, and it saves itself every minute.<br><br>
-      Your project file is the real copy. The browser keeps a spare of your work and your
-      template library, and clearing your browsing data erases those — but it can never
-      touch a file you have saved. Templates also ride along inside project files, and
-      <b>Back up templates</b> writes them to a file of their own.<br><br>
-      <div class="local" style="margin-bottom:12px">
-        <span class="dot"></span>
-        Runs entirely on this computer. No accounts, no uploads, no internet —
-        your photos and writing never leave this machine.
-      </div>
-      On a phone or tablet: <b>☰</b> opens the pages, and selecting a zone brings up
-      <b>Edit this zone</b> at the bottom right for all its settings.<br><br>
       <b>Drag</b> inside a photo — pan &nbsp; <b>Wheel / pinch</b> — zoom<br>
+      <b>Round amber handles</b> resize the photo inside its frame;
+      <b>square blue handles</b> resize the frame itself<br>
       <b>Double-click</b> an image zone — choose a file<br>
       <b>Blue bar</b> above a selected zone — move it &nbsp; <b>↻</b> — rotate<br>
+      <b>Alt</b> while dragging — ignore the alignment guides<br>
       <b>Arrows</b> nudge &nbsp; <b>Shift+Arrows</b> nudge further<br>
+      <b>Ctrl/⌘+B / I / U</b> bold, italic, underline the selected text zone<br>
+      <b>Ctrl/⌘+Z</b> undo &nbsp; <b>Ctrl/⌘+Y</b> redo &nbsp; <b>Ctrl/⌘+M</b> new page<br>
       <b>Ctrl/⌘+D</b> duplicate &nbsp; <b>Delete</b> remove zone &nbsp; <b>Esc</b> deselect<br>
+      <b>Ctrl/⌘+S</b> save &nbsp; <b>Ctrl/⌘+F</b> find a page<br>
       <b>PgUp / PgDn</b> previous / next page
     </div>
     <div class="mfoot"><button class="pri" onclick="closeModal()">Got it</button></div>
@@ -344,6 +508,7 @@
 <input type="file" id="projPick" accept=".json,application/json" style="display:none">
 <input type="file" id="tplPick" accept=".json,application/json" style="display:none">
 <div id="scrim"></div>
+<div id="ctx"></div>
 <button id="fab">Edit this zone ▸</button>
 <div id="toast"></div>
 
@@ -373,6 +538,21 @@ const FONTS = [
   ["'Comic Sans MS', 'Chalkboard', cursive", "Casual"]
 ];
 
+/* Text presets. Sizes are in points, so they stay true at any page size. */
+const TEXT_PRESETS = [
+  { id:"h1",      name:"Heading 1 \u2014 title",  size:32,   weight:700, italic:false, lh:1.15 },
+  { id:"h2",      name:"Heading 2 \u2014 section",size:20,   weight:700, italic:false, lh:1.25 },
+  { id:"h3",      name:"Heading 3 \u2014 label",  size:15,   weight:600, italic:false, lh:1.3  },
+  { id:"body",    name:"Body text",                size:13,   weight:400, italic:false, lh:1.45 },
+  { id:"caption", name:"Caption",                  size:10.5, weight:400, italic:true,  lh:1.4  }
+];
+function matchPreset(z){
+  const p = TEXT_PRESETS.find(p=>
+    Math.abs(p.size - z.size) < 0.01 && p.weight === z.weight &&
+    !!p.italic === !!z.italic && Math.abs(p.lh - z.lh) < 0.01);
+  return p ? p.id : "custom";
+}
+
 const FILTERS = {
   none:"", bw:"grayscale(1)", sepia:"sepia(.6) saturate(1.1)",
   warm:"saturate(1.15) hue-rotate(-6deg) brightness(1.03)",
@@ -380,6 +560,7 @@ const FILTERS = {
   fade:"saturate(.72) brightness(1.07) contrast(.92)"
 };
 
+let panelState = {pages:true, insp:true};
 let uid = 1;
 const nid = () => "z" + (uid++) + "_" + Math.random().toString(36).slice(2,6);
 
@@ -393,7 +574,7 @@ function imgZone(x,y,w,h,extra){
 function txtZone(x,y,w,h,extra){
   return Object.assign({
     id:nid(), type:"text", x,y,w,h, rot:0,
-    text:"", font:FONTS[0][0], size:13, weight:400, italic:false,
+    text:"", font:FONTS[0][0], size:13, weight:400, italic:false, underline:false,
     align:"left", valign:"top", color:"#2f2b26", lh:1.45, pad:7,
     bg:"", border:0, bcolor:"#2b2b2b", radius:0, shadow:false
   }, extra||{});
@@ -480,7 +661,12 @@ const selZone = () => page().zones.find(z=>z.id===sel) || null;
 let PPI = 60;
 function computePPI(){
   if(zoom!=="fit") { PPI = 96*parseFloat(zoom); return; }
-  const availW = stageWrap.clientWidth - 70, availH = stageWrap.clientHeight - 70;
+  let inset = 0;
+  if(window.innerWidth > 920){
+    const l = panelState.pages ? 150 : 0, r = panelState.insp ? 252 : 0;
+    inset = 2 * Math.max(l, r);         /* symmetric, so the page stays centered */
+  }
+  const availW = stageWrap.clientWidth - inset - 70, availH = stageWrap.clientHeight - 70;
   PPI = Math.max(20, Math.min(availW/size().w, availH/size().h));
 }
 const pt = v => v*PPI/72;   /* points → screen px */
@@ -646,7 +832,9 @@ function renderToCanvas(p, dpi){
         const lw = g.measureText(ln).width;
         if(z.align==="center") tx = (w-lw)/2;
         else if(z.align==="right") tx = w-pad-lw;
-        g.fillText(ln, tx, ty + i*lh + half + fs*0.80);
+        const base = ty + i*lh + half + fs*0.80;
+        g.fillText(ln, tx, base);
+        if(z.underline && ln) g.fillRect(tx, base + fs*0.13, lw, Math.max(1, fs*0.055));
       });
       g.restore();
     }
@@ -728,6 +916,7 @@ function render(){
         fontSize: pt(z.size)+"px",
         fontWeight: z.weight,
         fontStyle: z.italic ? "italic":"normal",
+        textDecoration: z.underline ? "underline" : "none",
         lineHeight: z.lh,
         color: z.color,
         textAlign: z.align,
@@ -781,7 +970,14 @@ function applyVAlign(){
 }
 
 function drawSel(){
-  pageEl.querySelectorAll(".selbox").forEach(n=>n.remove());
+  pageEl.querySelectorAll(".selbox,.pguide").forEach(n=>n.remove());
+  for(const g of moveGuides){
+    const el = document.createElement("div");
+    el.className = "pguide " + g.axis;
+    if(g.axis === "v") el.style.left = (g.pos*100) + "%";
+    else el.style.top = (g.pos*100) + "%";
+    pageEl.appendChild(el);
+  }
   pageEl.querySelectorAll(".zone").forEach(n=>n.classList.toggle("selzone", n.dataset.id===sel));
   if(typeof syncFab==="function") syncFab();
   const z = selZone(); if(!z) return;
@@ -792,12 +988,38 @@ function drawSel(){
     left:(z.x*W)+"px", top:(z.y*H)+"px", width:(z.w*W)+"px", height:(z.h*H)+"px",
     transform: z.rot?("rotate("+z.rot+"deg)"):""
   });
+  if(panGuides.show && panGuides.id === z.id){
+    box.dataset.guides = (panGuides.v?"v":"") + (panGuides.h?"h":"");
+  }
   box.innerHTML = '<div class="edge"></div>'
     + '<div class="movebar" data-act="move">'
     + '<span>'+(z.type==="image"?"image":"text")+'</span>'
     + '<span class="rot" data-act="rot" title="Drag to rotate">↻ '+Math.round(z.rot||0)+'°</span>'
     + '</div>'
     + ["nw","ne","sw","se","n","s","w","e"].map(k=>'<div class="h '+k+'" data-h="'+k+'"></div>').join("");
+  if(z.type === "image" && z.src){
+    const rec = getImg(z.src);
+    if(rec && rec.ready){
+      const q = imgRect(z, z.w*W, z.h*H, rec);
+      const ib = document.createElement("div");
+      ib.className = "imgbox";
+      Object.assign(ib.style,{
+        left:q.dx+"px", top:q.dy+"px", width:q.dw+"px", height:q.dh+"px"
+      });
+      ["nw","ne","sw","se"].forEach(k=>{
+        const hh = document.createElement("div");
+        hh.className = "ih " + k;
+        hh.dataset.ih = k;
+        hh.title = "Drag to resize the photo inside its frame";
+        ib.appendChild(hh);
+      });
+      box.appendChild(ib);
+    }
+  }
+  if(panGuides.show && panGuides.id === z.id){
+    if(panGuides.v) box.appendChild(h('<div class="gv"></div>'));
+    if(panGuides.h) box.appendChild(h('<div class="gh"></div>'));
+  }
   pageEl.appendChild(box);
 }
 
@@ -805,6 +1027,35 @@ function drawSel(){
    Pointer interactions
    ============================================================ */
 let drag = null;
+let panGuides = {show:false, id:null, v:false, h:false};
+let moveGuides = [];
+
+/* Align a dragged zone to the page edges and centre, and to the edges and
+   centres of the other zones on the page. */
+function snapMove(z, nx, ny, W, H){
+  const TOL = 6;                       /* screen pixels */
+  const vT = [0, 0.5, 1], hT = [0, 0.5, 1];
+  for(const other of page().zones){
+    if(other.id === z.id) continue;
+    vT.push(other.x, other.x + other.w/2, other.x + other.w);
+    hT.push(other.y, other.y + other.h/2, other.y + other.h);
+  }
+  const ax = [nx, nx + z.w/2, nx + z.w];
+  const ay = [ny, ny + z.h/2, ny + z.h];
+  let bx = null, by = null;
+  for(const a of ax) for(const t of vT){
+    const d = (t - a) * W;
+    if(Math.abs(d) <= TOL && (!bx || Math.abs(d) < Math.abs(bx.d))) bx = {d, p:t};
+  }
+  for(const a of ay) for(const t of hT){
+    const d = (t - a) * H;
+    if(Math.abs(d) <= TOL && (!by || Math.abs(d) < Math.abs(by.d))) by = {d, p:t};
+  }
+  const guides = [];
+  if(bx){ nx += bx.d / W; guides.push({axis:"v", pos:bx.p}); }
+  if(by){ ny += by.d / H; guides.push({axis:"h", pos:by.p}); }
+  return {x:nx, y:ny, guides};
+}
 const pts = new Map();          /* live pointers, for pinch */
 
 function pinchDist(){
@@ -823,6 +1074,23 @@ pageEl.addEventListener("pointerdown", e=>{
     }
     return;
   }
+  const ihEl = e.target.closest("[data-ih]");
+  if(ihEl){
+    const zz = selZone();
+    const rec = zz && zz.src ? getImg(zz.src) : null;
+    if(zz && rec && rec.ready){
+      e.preventDefault();
+      pageEl.setPointerCapture(e.pointerId);
+      pushUndo("gesture");
+      const W2 = pageEl.clientWidth, H2 = pageEl.clientHeight;
+      const zw = zz.w*W2, zh = zz.h*H2;
+      const q = imgRect(zz, zw, zh, rec);
+      drag = { mode:"scaleimg", k:ihEl.dataset.ih, z:zz, sx:e.clientX, sy:e.clientY,
+               o:{ scale:zz.scale||1, dx:q.dx, dy:q.dy, dw:q.dw, dh:q.dh,
+                   zw, zh, iw:rec.im.naturalWidth||1 } };
+    }
+    return;
+  }
   const hEl = e.target.closest("[data-h]");
   const act = e.target.closest("[data-act]");
   const zEl = e.target.closest(".zone");
@@ -832,6 +1100,7 @@ pageEl.addEventListener("pointerdown", e=>{
     const z = selZone(); if(!z) return;
     e.preventDefault();
     pageEl.setPointerCapture(e.pointerId);
+    pushUndo("gesture");
     drag = { mode: hEl ? "resize" : act.dataset.act, k: hEl && hEl.dataset.h,
              z, sx:e.clientX, sy:e.clientY, o:{x:z.x,y:z.y,w:z.w,h:z.h,rot:z.rot||0} };
     return;
@@ -843,6 +1112,7 @@ pageEl.addEventListener("pointerdown", e=>{
     if(z.type==="image" && z.src){
       e.preventDefault();
       pageEl.setPointerCapture(e.pointerId);
+      pushUndo("gesture");
       drag = { mode:"pan", z, sx:e.clientX, sy:e.clientY, o:{ox:z.ox||0, oy:z.oy||0},
                zw:z.w*W, zh:z.h*H };
     }
@@ -867,13 +1137,54 @@ pageEl.addEventListener("pointermove", e=>{
     return;
   }
 
+  if(drag.mode==="scaleimg"){
+    /* pointer delta into the zone's own axes, so rotation behaves */
+    const a = -(z.rot||0)*Math.PI/180;
+    const rx = dx*Math.cos(a) - dy*Math.sin(a);
+    const ry = dx*Math.sin(a) + dy*Math.cos(a);
+    const k = drag.k;
+    /* the opposite corner stays pinned */
+    const ax = k.indexOf("w")>=0 ? o.dx + o.dw : o.dx;
+    const ay = k.indexOf("n")>=0 ? o.dy + o.dh : o.dy;
+    const cx = k.indexOf("w")>=0 ? o.dx : o.dx + o.dw;
+    const cy = k.indexOf("n")>=0 ? o.dy : o.dy + o.dh;
+    const vx = cx-ax, vy = cy-ay;
+    const den = vx*vx + vy*vy;
+    /* project the pointer onto the original diagonal: keeps the aspect ratio */
+    let f = den ? (((cx+rx)-ax)*vx + ((cy+ry)-ay)*vy) / den : 1;
+    f = Math.max(0.05, Math.min(12, f));
+    const ndw = o.dw*f, ndh = o.dh*f;
+    const ndx = k.indexOf("w")>=0 ? (o.dx + o.dw) - ndw : o.dx;
+    const ndy = k.indexOf("n")>=0 ? (o.dy + o.dh) - ndh : o.dy;
+    const baseScale = (o.dw / (o.scale||1)) / o.iw;
+    z.scale = Math.max(0.05, Math.min(12, (ndw / o.iw) / baseScale));
+    z.ox = (ndx - (o.zw - ndw)/2) / o.zw;
+    z.oy = (ndy - (o.zh - ndh)/2) / o.zh;
+    render(); markDirty();
+    return;
+  }
   if(drag.mode==="pan"){
-    z.ox = o.ox + dx/drag.zw;
-    z.oy = o.oy + dy/drag.zh;
+    let nox = o.ox + dx/drag.zw;
+    let noy = o.oy + dy/drag.zh;
+    /* ease into dead centre, and say so with a guide line. Alt overrides. */
+    const SNAP = 7;
+    const onV = !e.altKey && Math.abs(nox * drag.zw) < SNAP;
+    const onH = !e.altKey && Math.abs(noy * drag.zh) < SNAP;
+    if(onV) nox = 0;
+    if(onH) noy = 0;
+    z.ox = nox; z.oy = noy;
+    panGuides = {show:(onV||onH), id:z.id, v:onV, h:onH};
   } else if(drag.mode==="move"){
-    const snap = e.altKey ? 1 : 200;   /* 0.005 grid unless Alt */
-    z.x = Math.round((o.x + dx/W)*snap)/snap;
-    z.y = Math.round((o.y + dy/H)*snap)/snap;
+    let nx = o.x + dx/W, ny = o.y + dy/H;
+    if(e.altKey){
+      moveGuides = [];                 /* Alt drags freely, no grid, no guides */
+    } else {
+      nx = Math.round(nx*200)/200;     /* gentle 0.005 grid... */
+      ny = Math.round(ny*200)/200;
+      const r = snapMove(z, nx, ny, W, H);   /* ...then true alignment wins */
+      nx = r.x; ny = r.y; moveGuides = r.guides;
+    }
+    z.x = nx; z.y = ny;
   } else if(drag.mode==="rot"){
     let r = o.rot + dx*0.35;
     if(!e.altKey) r = Math.round(r);
@@ -900,6 +1211,11 @@ pageEl.addEventListener("pointermove", e=>{
 
 function endDrag(e){
   pts.delete(e.pointerId);
+  if(panGuides.show || moveGuides.length){
+    panGuides = {show:false, id:null, v:false, h:false};
+    moveGuides = [];
+    render();
+  }
   if(!drag) return;
   if(drag.pinch && pts.size<2){
     /* lifting one finger ends the pinch but keeps the remaining drag sane */
@@ -920,6 +1236,7 @@ pageEl.addEventListener("wheel", e=>{
   const z = page().zones.find(v=>v.id===zEl.dataset.id);
   if(!z || z.type!=="image" || !z.src) return;
   e.preventDefault();
+  pushUndo("wheelZoom");
   z.scale = Math.max(0.2, Math.min(6, (z.scale||1) * (e.deltaY>0 ? 0.94 : 1.064)));
   render(); queueThumbs(); markDirty(); buildInsp();
 }, {passive:false});
@@ -950,6 +1267,7 @@ pageEl.addEventListener("drop", async e=>{
 });
 
 async function placeFiles(files, firstTarget, px, py){
+  pushUndo("addPhotos");
   toast("Loading " + files.length + " image" + (files.length>1?"s":"") + "…");
   const queue = [];
   if(firstTarget) queue.push(firstTarget);
@@ -999,17 +1317,72 @@ document.addEventListener("keydown", e=>{
     else { sel=null; drawSel(); buildInsp(); }
     return;
   }
-  if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==="d"){
-    e.preventDefault(); dupZone(); return;
-  }
   if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==="s"){
     e.preventDefault(); saveProject(); return;
   }
+  /* B / I / U apply to the selected text zone, including while writing in it */
+  if((e.ctrlKey||e.metaKey) && !e.altKey && "biu".indexOf(e.key.toLowerCase()) >= 0){
+    const inZoneText = e.target.closest && e.target.closest(".zone textarea");
+    const tz = selZone();
+    if(tz && tz.type === "text" && (inZoneText || !typing)){
+      e.preventDefault();
+      pushUndo("textStyle");
+      const k = e.key.toLowerCase();
+      if(k === "b")      tz.weight = (tz.weight >= 600) ? 400 : 700;
+      else if(k === "i") tz.italic = !tz.italic;
+      else               tz.underline = !tz.underline;
+      const caret = inZoneText ? [e.target.selectionStart, e.target.selectionEnd] : null;
+      if(inZoneText) editingId = tz.id;
+      render(); queueThumbs(); markDirty(); buildInsp();
+      if(caret){
+        setTimeout(()=>{
+          const ta = pageEl.querySelector('.zone[data-id="'+tz.id+'"] textarea');
+          if(ta){ ta.focus(); try{ ta.setSelectionRange(caret[0], caret[1]); }catch(err){} }
+        }, 0);
+      }
+      return;
+    }
+  }
   if(typing) return;
+  if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==="d"){
+    e.preventDefault(); dupZone(); return;
+  }
+  if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==="m"){
+    e.preventDefault(); addPage(cur); return;
+  }
+  if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==="z"){
+    e.preventDefault();
+    if(e.shiftKey) redo(); else undo();
+    return;
+  }
+  if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==="y"){
+    e.preventDefault(); redo(); return;
+  }
+  if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==="c"){
+    e.preventDefault();
+    const z = selZone();
+    if(z){ zoneClip = JSON.parse(JSON.stringify(z)); pageClip = null; toast("Zone copied. Ctrl+V to paste it."); }
+    else copyPage(cur);
+    return;
+  }
+  if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==="v"){
+    e.preventDefault();
+    if(zoneClip){
+      pushUndo("pasteZone");
+      const c = JSON.parse(JSON.stringify(zoneClip));
+      c.id = nid();
+      c.x = Math.min(.95, c.x + .02); c.y = Math.min(.95, c.y + .02);
+      page().zones.push(c); sel = c.id;
+      render(); queueThumbs(); buildInsp(); markDirty();
+      toast("Zone pasted.");
+    } else if(pageClip) pastePage(cur);
+    return;
+  }
   if(e.key==="PageDown"){ e.preventDefault(); gotoPage(cur+1); return; }
   if(e.key==="PageUp"){ e.preventDefault(); gotoPage(cur-1); return; }
   const z = selZone(); if(!z) return;
   if(e.key==="Delete" || e.key==="Backspace"){ e.preventDefault(); delZone(); return; }
+  if(["ArrowLeft","ArrowRight","ArrowUp","ArrowDown"].indexOf(e.key) >= 0) pushUndo("nudge");
   const step = e.shiftKey ? 0.02 : 0.004;
   let moved = true;
   if(e.key==="ArrowLeft") z.x -= step;
@@ -1024,6 +1397,128 @@ document.addEventListener("keydown", e=>{
    Inspector
    ============================================================ */
 function h(html){ const d=document.createElement("div"); d.innerHTML=html.trim(); return d.firstChild; }
+
+/* ---------- undo / redo ----------
+   Snapshots share the photo data by reference instead of copying it, so a
+   step costs a few small objects rather than megabytes of image. */
+const UNDO_MAX = 60;
+let undoStack = [], redoStack = [], lastPushAt = 0, lastPushTag = "";
+
+function snapshot(){
+  return {
+    size: project.size, title: project.title, cur, sel,
+    pages: project.pages.map(p=>({
+      id:p.id, name:p.name, note:p.note, bg:p.bg,
+      zones: p.zones.map(z=>Object.assign({}, z))
+    }))
+  };
+}
+function restoreSnap(s){
+  project.size  = s.size;
+  project.title = s.title;
+  project.pages = s.pages.map(p=>({
+    id:p.id, name:p.name, note:p.note, bg:p.bg,
+    zones: p.zones.map(z=>Object.assign({}, z))
+  }));
+  cur = Math.max(0, Math.min(s.cur, project.pages.length-1));
+  sel = s.sel; editingId = null;
+  if(selSize) selSize.value = project.size;
+  render(); drawList(); buildInsp(); markDirty();
+}
+/* A burst of the same kind of change inside a second counts as one step. */
+function pushUndo(tag){
+  const now = Date.now();
+  /* two pushes in the same instant are the same state */
+  if(now - lastPushAt < 60 && undoStack.length) return;
+  if(tag && tag === lastPushTag && now - lastPushAt < 900){ lastPushAt = now; return; }
+  lastPushTag = tag || ""; lastPushAt = now;
+  undoStack.push(snapshot());
+  if(undoStack.length > UNDO_MAX) undoStack.shift();
+  redoStack.length = 0;
+}
+function undo(){
+  if(!undoStack.length){ toast("Nothing left to undo."); return; }
+  redoStack.push(snapshot());
+  restoreSnap(undoStack.pop());
+  lastPushTag = "";
+  toast("Undone \u2014 Ctrl+Y to put it back.");
+}
+function redo(){
+  if(!redoStack.length){ toast("Nothing to redo."); return; }
+  undoStack.push(snapshot());
+  restoreSnap(redoStack.pop());
+  lastPushTag = "";
+  toast("Redone.");
+}
+
+/* ---------- collapsible inspector sections ---------- */
+const SECT_KEY = "scrapbook-sections";
+let sectState = {};
+function loadSects(){
+  try{ sectState = JSON.parse(localStorage.getItem(SECT_KEY) || "{}") || {}; }
+  catch(e){ sectState = {}; }
+}
+function saveSects(){
+  try{ localStorage.setItem(SECT_KEY, JSON.stringify(sectState)); }catch(e){}
+}
+/* Every .fld label becomes a header owning the controls beneath it. */
+function collapsify(root, opts){
+  const kids = [...root.children];
+  const keys = [];
+  let i = 0;
+  while(i < kids.length){
+    const node = kids[i];
+    const isLabel = node.classList && node.classList.contains("fld");
+    if(!isLabel){ i++; continue; }
+
+    const key = (node.textContent||"").trim().toLowerCase().split("\u2014")[0].trim();
+    keys.push(key);
+
+    const body = document.createElement("div");
+    body.className = "sectbody";
+    let j = i + 1;
+    while(j < kids.length){
+      const k = kids[j];
+      if(k.classList && k.classList.contains("fld")) break;
+      if(k.tagName === "HR") break;
+      body.appendChild(k);
+      j++;
+    }
+    node.classList.add("sechead");
+    const chev = document.createElement("span");
+    chev.className = "chev";
+    node.prepend(chev);
+    node.after(body);
+
+    const paint = col=>{
+      body.style.display = col ? "none" : "";
+      chev.textContent = col ? "\u25B8" : "\u25BE";
+      node.classList.toggle("collapsed", !!col);
+    };
+    paint(!!sectState[key]);
+    node.onclick = ()=>{
+      const now = !sectState[key];
+      sectState[key] = now; saveSects(); paint(now);
+    };
+    i = j;
+  }
+
+  if(keys.length > 1 && !(opts && opts.noBar)){
+    const anyOpen = keys.some(k=>!sectState[k]);
+    const bar = document.createElement("div");
+    bar.className = "sectbar";
+    const btn = document.createElement("button");
+    btn.className = "sm";
+    btn.textContent = anyOpen ? "Collapse all" : "Expand all";
+    btn.onclick = ()=>{
+      keys.forEach(k=>{ sectState[k] = anyOpen; });
+      saveSects(); buildInsp();
+    };
+    bar.appendChild(btn);
+    if(root.children.length > 1) root.insertBefore(bar, root.children[1]);
+    else root.appendChild(bar);
+  }
+}
 
 function buildInsp(){
   const z = selZone();
@@ -1051,12 +1546,14 @@ function buildInsp(){
     const ti = h('<input type="text" style="width:100%">'); ti.value = project.title||"";
     ti.oninput = ()=>{ project.title = ti.value; markDirty(); };
     inspEl.appendChild(ti);
+    collapsify(inspEl, {noBar:true});
     return;
   }
 
   inspEl.appendChild(h('<h3>'+(z.type==="image"?"Image zone":"Text zone")+'</h3>'));
 
   if(z.type==="image"){
+    inspEl.appendChild(h('<label class="fld" style="margin-top:4px">Photo</label>'));
     const r1 = h('<div class="row"></div>');
     const bPick = h('<button class="pri">Choose file…</button>');
     bPick.onclick = ()=>pickFilesFor(z);
@@ -1083,9 +1580,37 @@ function buildInsp(){
     zr.oninput = ()=>{ z.scale = parseInt(zr.value,10)/100; render(); markDirty(); };
     zr.onchange = ()=>{ queueThumbs(); buildInsp(); };
     inspEl.appendChild(zr);
-    const bRe = h('<button class="sm">Re-centre</button>');
+    const actRow = h('<div class="row tight" style="margin-top:6px"></div>');
+    const bRe = h('<button class="sm">Re-center</button>');
     bRe.onclick = ()=>{ z.ox=0; z.oy=0; z.scale=1; render(); queueThumbs(); markDirty(); buildInsp(); };
-    inspEl.appendChild(bRe);
+    const bSnap = h('<button class="sm" title="Shrink or grow the frame so it wraps the photo exactly as it looks now">Fit frame to photo</button>');
+    bSnap.onclick = ()=>{
+      if(!z.src){ toast("Add a photo first."); return; }
+      const rec = getImg(z.src);
+      if(!rec || !rec.ready){ toast("That photo is still loading."); return; }
+      const W = pageEl.clientWidth, H = pageEl.clientHeight;
+      const zw = z.w*W, zh = z.h*H;
+      const q = imgRect(z, zw, zh, rec);          /* where the photo sits right now */
+
+      /* Move the frame to the photo's own rectangle without the photo appearing
+         to move. Rotation pivots on the zone centre, so the new centre is the
+         old one plus the rotated offset between the two centres. */
+      const t = (z.rot||0) * Math.PI/180;
+      const ox2 = (q.dx + q.dw/2) - zw/2;
+      const oy2 = (q.dy + q.dh/2) - zh/2;
+      const cx = (z.x + z.w/2)*W + (ox2*Math.cos(t) - oy2*Math.sin(t));
+      const cy = (z.y + z.h/2)*H + (ox2*Math.sin(t) + oy2*Math.cos(t));
+
+      z.w = q.dw/W; z.h = q.dh/H;
+      z.x = (cx - q.dw/2)/W; z.y = (cy - q.dh/2)/H;
+      z.scale = 1; z.ox = 0; z.oy = 0; z.fit = "cover";
+      render(); queueThumbs(); markDirty(); buildInsp();
+      const off = z.x < -0.001 || z.y < -0.001 || z.x+z.w > 1.001 || z.y+z.h > 1.001;
+      toast(off ? "Frame fitted \u2014 part of it now sits off the page."
+                : "Frame fitted to the photo.");
+    };
+    actRow.appendChild(bRe); actRow.appendChild(bSnap);
+    inspEl.appendChild(actRow);
 
     inspEl.appendChild(h('<label class="fld">Tone</label>'));
     const fRow = h('<div class="row tight"></div>');
@@ -1096,6 +1621,25 @@ function buildInsp(){
     });
     inspEl.appendChild(fRow);
   } else {
+    inspEl.appendChild(h('<label class="fld">Text style</label>'));
+    const ps = h('<select style="width:100%"></select>');
+    TEXT_PRESETS.forEach(pr=>{
+      const o = document.createElement("option");
+      o.value = pr.id; o.textContent = pr.name;
+      ps.appendChild(o);
+    });
+    const cu = document.createElement("option");
+    cu.value = "custom"; cu.textContent = "Custom";
+    ps.appendChild(cu);
+    ps.value = matchPreset(z);
+    ps.onchange = ()=>{
+      const pr = TEXT_PRESETS.find(p=>p.id===ps.value);
+      if(!pr) return;
+      z.size = pr.size; z.weight = pr.weight; z.italic = pr.italic; z.lh = pr.lh;
+      render(); queueThumbs(); markDirty(); buildInsp();
+    };
+    inspEl.appendChild(ps);
+
     inspEl.appendChild(h('<label class="fld">Font</label>'));
     const fs = h('<select style="width:100%"></select>');
     FONTS.forEach(([v,lab])=>{
@@ -1120,7 +1664,9 @@ function buildInsp(){
     bB.onclick = ()=>{ z.weight = z.weight>=600?400:700; render(); queueThumbs(); markDirty(); buildInsp(); };
     const bI = h('<button class="sm'+(z.italic?" on":"")+'" style="font-style:italic">I</button>');
     bI.onclick = ()=>{ z.italic=!z.italic; render(); queueThumbs(); markDirty(); buildInsp(); };
-    st.appendChild(bB); st.appendChild(bI);
+    const bU = h('<button class="sm'+(z.underline?" on":"")+'" style="text-decoration:underline">U</button>');
+    bU.onclick = ()=>{ z.underline=!z.underline; render(); queueThumbs(); markDirty(); buildInsp(); };
+    st.appendChild(bB); st.appendChild(bI); st.appendChild(bU);
     [["left","⟸"],["center","≡"],["right","⟹"]].forEach(([v,lab])=>{
       const b = h('<button class="sm'+(z.align===v?" on":"")+'">'+lab+'</button>');
       b.onclick = ()=>{ z.align=v; render(); queueThumbs(); markDirty(); buildInsp(); };
@@ -1137,7 +1683,7 @@ function buildInsp(){
     });
     inspEl.appendChild(vr);
 
-    inspEl.appendChild(h('<label class="fld">Text colour / padding (pt)</label>'));
+    inspEl.appendChild(h('<label class="fld">Text color / padding (pt)</label>'));
     const cr = h('<div class="row tight"></div>');
     const col = h('<input type="color">'); col.value = z.color;
     col.oninput = ()=>{ z.color=col.value; render(); queueThumbs(); markDirty(); };
@@ -1153,7 +1699,7 @@ function buildInsp(){
   const bw = h('<input type="number" class="num" min="0" max="40" step="0.5" title="Border width (pt)">');
   bw.value = z.border||0;
   bw.oninput = ()=>{ z.border = Math.max(0, parseFloat(bw.value)||0); render(); queueThumbs(); markDirty(); };
-  const bc = h('<input type="color" title="Border colour">'); bc.value = z.bcolor||"#2b2b2b";
+  const bc = h('<input type="color" title="Border color">'); bc.value = z.bcolor||"#2b2b2b";
   bc.oninput = ()=>{ z.bcolor=bc.value; render(); queueThumbs(); markDirty(); };
   const rad = h('<input type="number" class="num" min="0" max="200" step="1" title="Corner radius (pt)">');
   rad.value = z.radius||0;
@@ -1170,14 +1716,31 @@ function buildInsp(){
   shRow.appendChild(sh); shRow.appendChild(wh);
   inspEl.appendChild(shRow);
 
-  inspEl.appendChild(h('<label class="fld">Rotation — '+Math.round(z.rot||0)+'°</label>'));
-  const rr = h('<input type="range" min="-45" max="45" step="0.5">');
+  inspEl.appendChild(h('<label class="fld">Rotation (degrees)</label>'));
+  const rotRow = h('<div class="row tight" style="margin-bottom:6px"></div>');
+  const rnum = h('<input type="number" class="num" min="-180" max="180" step="0.5" title="Type an exact angle">');
+  rnum.value = z.rot || 0;
+  function setRot(v){
+    v = Math.max(-180, Math.min(180, isNaN(v) ? 0 : v));
+    z.rot = v; rnum.value = v; rr.value = v;
+    render(); markDirty(); queueThumbs();
+  }
+  rnum.oninput = ()=>{ const v = parseFloat(rnum.value); if(!isNaN(v)) setRot(v); };
+  rotRow.appendChild(rnum);
+  [0, 90, -90, 180].forEach(d=>{
+    const rb = h('<button class="sm" title="Set to '+d+' degrees">'+d+'\u00B0</button>');
+    rb.onclick = ()=>setRot(d);
+    rotRow.appendChild(rb);
+  });
+  inspEl.appendChild(rotRow);
+  const rr = h('<input type="range" min="-180" max="180" step="0.5" title="Drag for fine adjustment">');
   rr.value = z.rot||0;
-  rr.oninput = ()=>{ z.rot=parseFloat(rr.value); render(); markDirty(); };
-  rr.onchange = ()=>{ queueThumbs(); buildInsp(); };
+  rr.oninput = ()=>{ z.rot=parseFloat(rr.value); rnum.value=rr.value; render(); markDirty(); };
+  rr.onchange = ()=>{ queueThumbs(); };
   inspEl.appendChild(rr);
 
   inspEl.appendChild(h('<hr>'));
+  inspEl.appendChild(h('<label class="fld" style="margin-top:4px">Arrange</label>'));
   const ord = h('<div class="row tight"></div>');
   const bFwd = h('<button class="sm">Bring forward</button>');
   bFwd.onclick = ()=>moveZ(1);
@@ -1190,11 +1753,13 @@ function buildInsp(){
   const bDel = h('<button class="sm">Delete</button>'); bDel.onclick = delZone;
   act.appendChild(bDup); act.appendChild(bDel);
   inspEl.appendChild(act);
+  collapsify(inspEl);
 }
 
 function moveZ(dir){
   const zs = page().zones, i = zs.findIndex(v=>v.id===sel);
   if(i<0) return;
+  pushUndo("moveZ");
   const j = i+dir;
   if(j<0 || j>=zs.length) return;
   [zs[i],zs[j]] = [zs[j],zs[i]];
@@ -1202,6 +1767,7 @@ function moveZ(dir){
 }
 function dupZone(){
   const z = selZone(); if(!z) return;
+  pushUndo("dupZone");
   const c = JSON.parse(JSON.stringify(z));
   c.id = nid(); c.x = Math.min(.95, z.x+.02); c.y = Math.min(.95, z.y+.02);
   page().zones.push(c); sel = c.id;
@@ -1210,6 +1776,7 @@ function dupZone(){
 function delZone(){
   const zs = page().zones, i = zs.findIndex(v=>v.id===sel);
   if(i<0) return;
+  pushUndo("delZone");
   zs.splice(i,1); sel=null; editingId=null;
   render(); queueThumbs(); buildInsp(); markDirty();
 }
@@ -1222,21 +1789,340 @@ function queueThumbs(){
   clearTimeout(thumbTimer);
   thumbTimer = setTimeout(drawList, 280);
 }
+/* ---------- page operations ---------- */
+let pageClip = null, zoneClip = null;
+
+function clonePage(p){
+  const c = JSON.parse(JSON.stringify(p));
+  c.id = nid();
+  c.zones.forEach(z=>z.id = nid());
+  return c;
+}
+function addPage(i){
+  pushUndo("addPage");
+  project.pages.splice(i+1, 0, newPage(0));
+  gotoPage(i+1); markDirty();
+}
+function duplicatePage(i){
+  pushUndo("dupPage");
+  project.pages.splice(i+1, 0, clonePage(project.pages[i]));
+  gotoPage(i+1); markDirty();
+  toast("Page duplicated.");
+}
+function copyPage(i){
+  pageClip = JSON.parse(JSON.stringify(project.pages[i]));
+  zoneClip = null;
+  toast('Copied "' + (project.pages[i].name||"Page") + '". Ctrl+V to paste it.');
+}
+function pastePage(i){
+  if(!pageClip) return;
+  pushUndo("pastePage");
+  project.pages.splice(i+1, 0, clonePage(pageClip));
+  gotoPage(i+1); markDirty();
+  toast("Page pasted.");
+}
+function deletePage(i){
+  if(project.pages.length===1){ toast("A project needs at least one page."); return; }
+  pushUndo("delPage");
+  project.pages.splice(i,1);
+  gotoPage(Math.min(i, project.pages.length-1)); markDirty();
+}
+function movePage(i, dir){
+  const j = i + dir;
+  if(j<0 || j>=project.pages.length) return;
+  pushUndo("movePage");
+  [project.pages[i], project.pages[j]] = [project.pages[j], project.pages[i]];
+  gotoPage(j); markDirty();
+}
+function renamePage(i, nameEl){
+  const p = project.pages[i];
+  const inp = document.createElement("input");
+  inp.type = "text"; inp.className = "rename"; inp.value = p.name || "";
+  inp.onclick = e=>e.stopPropagation();
+  inp.onpointerdown = e=>e.stopPropagation();
+  let done = false;
+  const commit = ()=>{
+    if(done) return;
+    done = true;
+    if((inp.value.trim() || "Page") !== (p.name || "Page")) pushUndo("renamePage");
+    p.name = inp.value.trim() || "Page";
+    markDirty(); drawList(); buildInsp();
+  };
+  inp.onblur = commit;
+  inp.onkeydown = e=>{
+    e.stopPropagation();
+    if(e.key==="Enter"){ e.preventDefault(); inp.blur(); }
+    else if(e.key==="Escape"){ e.preventDefault(); inp.value = p.name||""; inp.blur(); }
+  };
+  nameEl.replaceWith(inp);
+  inp.focus(); inp.select();
+}
+
+/* ---------- right-click menu ---------- */
+const ctxEl = document.getElementById("ctx");
+function showCtx(x, y, items){
+  ctxEl.innerHTML = "";
+  items.forEach(it=>{
+    if(it==="-"){ ctxEl.appendChild(document.createElement("hr")); return; }
+    const b = document.createElement("button");
+    b.textContent = it.label;
+    if(it.disabled) b.disabled = true;
+    else b.onclick = ()=>{ hideCtx(); it.fn(); };
+    ctxEl.appendChild(b);
+  });
+  ctxEl.classList.add("on");
+  const r = ctxEl.getBoundingClientRect();
+  ctxEl.style.left = Math.max(6, Math.min(x, window.innerWidth  - r.width  - 8)) + "px";
+  ctxEl.style.top  = Math.max(6, Math.min(y, window.innerHeight - r.height - 8)) + "px";
+}
+function hideCtx(){ ctxEl.classList.remove("on"); }
+document.addEventListener("pointerdown", e=>{ if(!e.target.closest("#ctx")) hideCtx(); }, true);
+window.addEventListener("blur", hideCtx);
+
+let pageQuery = "";
+
+function snippetOf(text, i, len){
+  const start = Math.max(0, i - 22), end = Math.min(text.length, i + len + 34);
+  return {
+    pre:  (start > 0 ? "\u2026" : "") + text.slice(start, i),
+    mid:  text.slice(i, i + len),
+    post: text.slice(i + len, end) + (end < text.length ? "\u2026" : "")
+  };
+}
+/* one query, matched against the page name and every text zone on it */
+function pageMatch(p, q){
+  if(!q) return {hit:true};
+  if((p.name||"").toLowerCase().indexOf(q) >= 0) return {hit:true, where:"title"};
+  for(const z of p.zones){
+    if(z.type !== "text" || !z.text) continue;
+    const i = z.text.toLowerCase().indexOf(q);
+    if(i >= 0) return {hit:true, where:"text", snip:snippetOf(z.text, i, q.length)};
+  }
+  return {hit:false};
+}
+
 function drawList(){
   listEl.innerHTML = "";
+  const q = pageQuery.trim().toLowerCase();
+  let shown = 0;
   project.pages.forEach((p,i)=>{
+    const m = pageMatch(p, q);
+    if(!m.hit) return;
+    shown++;
     const d = document.createElement("div");
     d.className = "pthumb" + (i===cur?" sel":"");
     const c = renderToCanvas(p, Math.min(26, 170/size().w));
     d.appendChild(c);
+
     const n = document.createElement("div");
     n.className = "n";
-    n.innerHTML = "<b>"+escapeHtml(p.name||"Page")+"</b><span>"+(i+1)+"</span>";
+    const nb = document.createElement("b");
+    nb.textContent = p.name || "Page";
+    nb.title = "Double-click to rename";
+    const ns = document.createElement("span");
+    ns.textContent = i+1;
+    n.appendChild(nb); n.appendChild(ns);
     d.appendChild(n);
-    d.onclick = ()=>gotoPage(i);
+    if(q && m.where === "title"){
+      const k = document.createElement("div");
+      k.className = "hitkind"; k.textContent = "page title";
+      d.appendChild(k);
+    } else if(q && m.snip){
+      const sn = document.createElement("div");
+      sn.className = "snip";
+      sn.appendChild(document.createTextNode(m.snip.pre));
+      const mk = document.createElement("mark");
+      mk.textContent = m.snip.mid;
+      sn.appendChild(mk);
+      sn.appendChild(document.createTextNode(m.snip.post));
+      d.appendChild(sn);
+    }
+    d.dataset.i = i;
     listEl.appendChild(d);
   });
+
+  const find = document.getElementById("pageFind");
+  const count = document.getElementById("pageFindCount");
+  if(find) find.classList.toggle("has", !!q);
+  if(count) count.textContent = shown + " of " + project.pages.length + " pages";
+  if(q && !shown){
+    const none = document.createElement("div");
+    none.className = "pfnone";
+    none.textContent = "No page title or writing contains \u201C" + pageQuery.trim() + "\u201D.";
+    listEl.appendChild(none);
+  }
 }
+
+/* Delegated, so rebuilding the list never strands a handler mid-gesture. */
+function thumbIndex(e){
+  const t = e.target.closest(".pthumb");
+  return t ? parseInt(t.dataset.i, 10) : -1;
+}
+listEl.addEventListener("click", e=>{
+  if(justDragged){ justDragged = false; return; }
+  if(e.target.closest("input.rename")) return;
+  const i = thumbIndex(e);
+  if(i>=0 && i!==cur) gotoPage(i);     /* no rebuild when it is already current */
+});
+listEl.addEventListener("dblclick", e=>{
+  const i = thumbIndex(e);
+  const b = e.target.closest(".n b");
+  if(i>=0 && b){ e.preventDefault(); e.stopPropagation(); renamePage(i, b); }
+});
+/* ---------- drag a page to reorder ---------- */
+let pdrag = null, justDragged = false;
+
+function dragRects(){
+  const d = pdrag;
+  const shift = listEl.scrollTop - d.scroll0;
+  return d.rects.map(r=>({ top:r.top - shift, h:r.h }));
+}
+function updateTarget(){
+  const d = pdrag;
+  const rects = dragRects();
+  /* With the dragged page lifted out, the remaining pages occupy slots 0..n-2,
+     so measure against those, not against the original slot positions. */
+  let t = 0;
+  for(let k=0; k<rects.length-1; k++){
+    if(d.lastY > rects[k].top + rects[k].h/2) t = k+1;
+  }
+  t = Math.max(0, Math.min(rects.length-1, t));
+  if(t !== d.target){ d.target = t; applyGap(); }
+}
+function applyGap(){
+  const d = pdrag;
+  d.items.forEach((n,i)=>{
+    if(i === d.i) return;
+    let y = 0;
+    if(d.target > d.i && i > d.i && i <= d.target) y = -d.step;
+    else if(d.target < d.i && i >= d.target && i < d.i) y = d.step;
+    n.style.transform = y ? ("translateY("+y+"px)") : "";
+  });
+}
+function autoScrollTick(){
+  const d = pdrag;
+  if(!d || !d.started) return;
+  const lr = listEl.getBoundingClientRect();
+  let v = 0;
+  if(d.lastY < lr.top + 46)         v = -Math.min(16, (lr.top + 46 - d.lastY)/2.5);
+  else if(d.lastY > lr.bottom - 46) v =  Math.min(16, (d.lastY - (lr.bottom - 46))/2.5);
+  if(v){
+    const before = listEl.scrollTop;
+    listEl.scrollTop += v;
+    if(listEl.scrollTop !== before) updateTarget();
+  }
+  d.raf = requestAnimationFrame(autoScrollTick);
+}
+
+function startPageDrag(e){
+  const d = pdrag;
+  d.started = true;
+  pushUndo("dragPage");
+  hideCtx();
+  d.items  = [...listEl.children];
+  d.scroll0 = listEl.scrollTop;
+  d.rects  = d.items.map(n=>{ const r = n.getBoundingClientRect(); return {top:r.top, h:r.height}; });
+  d.step   = d.rects.length > 1 ? (d.rects[1].top - d.rects[0].top) : (d.rects[0].h + 8);
+
+  const src = d.el;
+  const sr  = src.getBoundingClientRect();
+  const fly = document.createElement("div");
+  fly.className = "pthumb flying";
+  const c0 = src.querySelector("canvas");
+  if(c0){
+    const c1 = document.createElement("canvas");
+    c1.width = c0.width; c1.height = c0.height;
+    c1.getContext("2d").drawImage(c0, 0, 0);
+    fly.appendChild(c1);
+  }
+  const lbl = src.querySelector(".n");
+  if(lbl) fly.appendChild(lbl.cloneNode(true));
+  fly.style.width = sr.width + "px";
+  fly.style.left  = sr.left  + "px";
+  fly.style.top   = sr.top   + "px";
+  document.body.appendChild(fly);
+
+  d.fly = fly; d.flyTop0 = sr.top; d.target = d.i;
+  src.classList.add("ghost");
+  d.raf = requestAnimationFrame(autoScrollTick);
+}
+
+function endPageDrag(cancelled){
+  const d = pdrag; pdrag = null;
+  if(d.raf) cancelAnimationFrame(d.raf);
+  if(d.fly) d.fly.remove();
+  d.items.forEach(n=>{ n.style.transform = ""; });
+  d.el.classList.remove("ghost");
+  justDragged = true;
+  if(cancelled || d.target === d.i){ drawList(); return; }
+
+  const curPage = project.pages[cur];
+  const [moved] = project.pages.splice(d.i, 1);
+  project.pages.splice(d.target, 0, moved);
+  cur = project.pages.indexOf(curPage);
+  markDirty();
+  drawList(); render(); buildInsp();
+  toast('"' + (moved.name||"Page") + '" moved to position ' + (d.target+1) + ".");
+}
+
+listEl.addEventListener("pointerdown", e=>{
+  if(e.button !== 0 || e.pointerType === "touch") return;   /* leave touch scrolling alone */
+  if(pageQuery.trim()) return;        /* a filtered list cannot be reordered safely */
+  if(e.target.closest("input.rename")) return;
+  const el = e.target.closest(".pthumb");
+  if(!el) return;
+  pdrag = { el, i: parseInt(el.dataset.i, 10), x0:e.clientX, y0:e.clientY,
+            lastY:e.clientY, started:false, pid:e.pointerId };
+});
+window.addEventListener("pointermove", e=>{
+  if(!pdrag || e.pointerId !== pdrag.pid) return;
+  pdrag.lastY = e.clientY;
+  if(!pdrag.started){
+    if(Math.abs(e.clientY - pdrag.y0) < 5 && Math.abs(e.clientX - pdrag.x0) < 5) return;
+    startPageDrag(e);
+  }
+  e.preventDefault();
+  pdrag.fly.style.top = (pdrag.flyTop0 + (e.clientY - pdrag.y0)) + "px";
+  updateTarget();
+});
+window.addEventListener("pointerup", e=>{
+  if(!pdrag || e.pointerId !== pdrag.pid) return;
+  if(pdrag.started) endPageDrag(false); else pdrag = null;
+});
+window.addEventListener("pointercancel", ()=>{ if(pdrag && pdrag.started) endPageDrag(true); else pdrag = null; });
+document.addEventListener("keydown", e=>{
+  if(e.key === "Escape" && pdrag && pdrag.started){ e.stopPropagation(); endPageDrag(true); }
+}, true);
+
+listEl.addEventListener("contextmenu", e=>{
+  const i = thumbIndex(e);
+  if(i<0){
+    e.preventDefault();
+    showCtx(e.clientX, e.clientY, [
+      {label:"New page", fn:()=>addPage(project.pages.length-1)},
+      {label:"Paste page", disabled:!pageClip, fn:()=>pastePage(project.pages.length-1)}
+    ]);
+    return;
+  }
+  e.preventDefault();
+  if(i!==cur) gotoPage(i);
+  showCtx(e.clientX, e.clientY, [
+    {label:"New page", fn:()=>addPage(i)},
+    {label:"Duplicate page", fn:()=>duplicatePage(i)},
+    "-",
+    {label:"Copy page", fn:()=>copyPage(i)},
+    {label:"Paste page after", disabled:!pageClip, fn:()=>pastePage(i)},
+    "-",
+    {label:"Rename\u2026", fn:()=>{
+      const el = listEl.children[i] && listEl.children[i].querySelector(".n b");
+      if(el) renamePage(i, el);
+    }},
+    {label:"Move up",   disabled:i===0, fn:()=>movePage(i,-1)},
+    {label:"Move down", disabled:i===project.pages.length-1, fn:()=>movePage(i,1)},
+    "-",
+    {label:"Delete page", disabled:project.pages.length===1, fn:()=>deletePage(i)}
+  ]);
+});
 function escapeHtml(s){ return String(s).replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
 function gotoPage(i){
   if(i<0 || i>=project.pages.length) return;
@@ -1245,31 +2131,7 @@ function gotoPage(i){
   if(typeof closeDrawers==="function" && window.innerWidth<=920) closeDrawers();
 }
 
-document.getElementById("btnPageAdd").onclick = ()=>{
-  project.pages.splice(cur+1, 0, newPage(0));
-  gotoPage(cur+1); markDirty();
-};
-document.getElementById("btnPageDup").onclick = ()=>{
-  const c = JSON.parse(JSON.stringify(page()));
-  c.id = nid(); c.zones.forEach(z=>z.id=nid());
-  project.pages.splice(cur+1,0,c);
-  gotoPage(cur+1); markDirty();
-};
-document.getElementById("btnPageDel").onclick = ()=>{
-  if(project.pages.length===1){ toast("A project needs at least one page."); return; }
-  project.pages.splice(cur,1);
-  gotoPage(Math.min(cur, project.pages.length-1)); markDirty();
-};
-document.getElementById("btnPageUp").onclick = ()=>{
-  if(cur===0) return;
-  [project.pages[cur-1],project.pages[cur]] = [project.pages[cur],project.pages[cur-1]];
-  gotoPage(cur-1); markDirty();
-};
-document.getElementById("btnPageDown").onclick = ()=>{
-  if(cur===project.pages.length-1) return;
-  [project.pages[cur+1],project.pages[cur]] = [project.pages[cur],project.pages[cur+1]];
-  gotoPage(cur+1); markDirty();
-};
+document.getElementById("btnAddPage").onclick = ()=>addPage(cur);
 
 /* ============================================================
    Templates modal
@@ -1421,6 +2283,7 @@ tplPick.addEventListener("change", ()=>{
 });
 
 function applyZones(zs){
+  pushUndo("template");
   const old = page().zones.filter(z=>z.type==="image" && z.src);
   const oldText = page().zones.filter(z=>z.type==="text" && String(z.text||"").trim()!=="");
   let ii=0, ti=0;
@@ -1463,14 +2326,92 @@ fab.onclick = ()=>{ setDrawer(inspEl, !inspEl.classList.contains("open")); };
 scrim.onclick = closeDrawers;
 function syncFab(){ fab.classList.toggle("show", !!sel); }
 
+/* ---------- show / hide the side panels ---------- */
+const PANEL_KEY = "scrapbook-panels";
+function loadPanels(){
+  try{
+    const v = JSON.parse(localStorage.getItem(PANEL_KEY) || "null");
+    if(v && typeof v === "object") panelState = {pages:v.pages!==false, insp:v.insp!==false};
+  }catch(e){}
+}
+function applyPanels(){
+  document.body.classList.toggle("nopages", !panelState.pages);
+  document.body.classList.toggle("noinsp",  !panelState.insp);
+  const a = document.getElementById("btnTogglePages");
+  const b2 = document.getElementById("btnToggleInsp");
+  if(a){
+    a.textContent = panelState.pages ? "\u276E" : "\u276F";
+    a.title = panelState.pages ? "Hide the page strip" : "Show the page strip";
+  }
+  if(b2){
+    b2.textContent = panelState.insp ? "\u276F" : "\u276E";
+    b2.title = panelState.insp ? "Hide the editing panel" : "Show the editing panel";
+  }
+  render();
+}
+document.getElementById("btnTogglePages").onclick = ()=>{
+  panelState.pages = !panelState.pages;
+  try{ localStorage.setItem(PANEL_KEY, JSON.stringify(panelState)); }catch(e){}
+  applyPanels();
+};
+document.getElementById("btnToggleInsp").onclick = ()=>{
+  panelState.insp = !panelState.insp;
+  try{ localStorage.setItem(PANEL_KEY, JSON.stringify(panelState)); }catch(e){}
+  applyPanels();
+};
+
+/* any control inside the inspector, or typing in a text zone, opens an undo step */
+inspEl.addEventListener("input",  ()=>pushUndo("insp"), true);
+inspEl.addEventListener("change", ()=>pushUndo("insp"), true);
+inspEl.addEventListener("click", e=>{
+  if(e.target.closest(".sechead") || e.target.closest(".sectbar")) return;
+  if(e.target.tagName === "BUTTON") pushUndo("inspBtn");
+}, true);
+pageEl.addEventListener("input", ()=>pushUndo("typing"), true);
+
+/* ---------- find a page ---------- */
+const pageSearch = document.getElementById("pageSearch");
+let findTimer = null;
+pageSearch.addEventListener("input", ()=>{
+  clearTimeout(findTimer);
+  findTimer = setTimeout(()=>{ pageQuery = pageSearch.value; drawList(); }, 110);
+});
+pageSearch.addEventListener("keydown", e=>{
+  /* only swallow what this box handles; Ctrl+S and friends must still work */
+  if(e.key === "Escape" || e.key === "Enter") e.stopPropagation();
+  if(e.key === "Escape"){
+    if(pageSearch.value){ pageSearch.value = ""; pageQuery = ""; drawList(); }
+    else pageSearch.blur();
+  } else if(e.key === "Enter"){
+    const first = listEl.querySelector(".pthumb");
+    if(first) gotoPage(parseInt(first.dataset.i, 10));
+  }
+});
+document.getElementById("pageSearchX").onclick = ()=>{
+  pageSearch.value = ""; pageQuery = ""; drawList(); pageSearch.focus();
+};
+document.addEventListener("keydown", e=>{
+  if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==="f"){
+    e.preventDefault();
+    if(!panelState.pages && window.innerWidth > 920){
+      panelState.pages = true;
+      try{ localStorage.setItem(PANEL_KEY, JSON.stringify(panelState)); }catch(err){}
+      applyPanels();
+    }
+    pageSearch.focus(); pageSearch.select();
+  }
+});
+
 document.getElementById("btnPhotos").onclick = ()=>pickFilesFor(null);
 document.getElementById("btnTemplate").onclick = openTemplates;
 document.getElementById("btnHelp").onclick = ()=>document.getElementById("mHelp").classList.add("open");
 document.getElementById("btnAddImg").onclick = ()=>{
+  pushUndo("addZone");
   const z = imgZone(.2,.2,.38,.3,{shadow:true,border:4,bcolor:"#ffffff"});
   page().zones.push(z); sel=z.id; render(); queueThumbs(); buildInsp(); markDirty();
 };
 document.getElementById("btnAddTxt").onclick = ()=>{
+  pushUndo("addZone");
   const z = txtZone(.2,.2,.45,.18);
   page().zones.push(z); sel=z.id; editingId=z.id; render(); queueThumbs(); buildInsp(); markDirty();
 };
@@ -1544,9 +2485,11 @@ setInterval(()=>{
 function setFileLabel(){
   const el = document.getElementById("fname");
   if(!el) return;
-  el.textContent = (fileDirty ? "• " : "") + (fileHandle ? fileHandle.name : "unsaved");
+  el.textContent = (fileDirty ? "• " : "") + (fileHandle ? fileHandle.name : "no project file");
   el.classList.toggle("unsaved", !fileHandle);
-  el.title = fileHandle ? ("Saving to " + fileHandle.name) : "Not saved to a file yet";
+  el.title = fileHandle
+    ? ("Every page is saved into " + fileHandle.name + " on this computer")
+    : "Your pages are not in a file yet — use Save project as…";
 }
 async function writeHandle(){
   const w = await fileHandle.createWritable();
@@ -1556,7 +2499,7 @@ async function writeHandle(){
 }
 async function saveProject(){
   if(FSA && fileHandle){
-    try{ await writeHandle(); toast("Saved — " + fileHandle.name); }
+    try{ await writeHandle(); recordRecent(fileHandle); toast("Saved \u2014 " + fileHandle.name); }
     catch(e){
       autoFileSave = false;
       toast("Couldn't write to that file. Use Save as… to pick another.");
@@ -1574,7 +2517,8 @@ async function saveAs(){
       });
       autoFileSave = true;
       await writeHandle();
-      toast("Saved — " + fileHandle.name);
+      recordRecent(fileHandle);
+      toast("Saved \u2014 " + fileHandle.name);
       return;
     }catch(e){
       if(e && e.name==="AbortError") return;
@@ -1584,27 +2528,149 @@ async function saveAs(){
   fileDirty = false; savedOnce = true; setFileLabel();
   toast("Project saved to your downloads folder.");
 }
-async function openProject(){
-  if(FSA){
+/* ---------- recent projects ---------- */
+const RECENT_MAX = 8;
+
+async function ensureDB(){
+  if(!db) db = await openDB();
+  return db;
+}
+async function recentsAll(){
+  const d = await ensureDB();
+  if(!d) return [];
+  return new Promise(res=>{
     try{
-      const [hdl] = await window.showOpenFilePicker({
-        types:[{description:"Scrapbook project", accept:{"application/json":[".json"]}}]
-      });
-      const f = await hdl.getFile();
-      const p = JSON.parse(await f.text());
-      if(!p || !Array.isArray(p.pages)) throw new Error("bad");
-      fileHandle = hdl; autoFileSave = true;
-      loadProject(p);
-      fileDirty = false; setFileLabel();
-      toast("Opened " + f.name + " — " + p.pages.length + " page(s).");
-    }catch(e){
-      if(e && e.name==="AbortError") return;
-      toast("That doesn't look like a scrapbook project file.");
+      const rq = d.transaction("recents","readonly").objectStore("recents").getAll();
+      rq.onsuccess = ()=> res((rq.result||[]).sort((a,b)=>b.at-a.at));
+      rq.onerror   = ()=> res([]);
+    }catch(e){ res([]); }
+  });
+}
+async function recentPut(entry){
+  const d = await ensureDB(); if(!d) return;
+  try{ d.transaction("recents","readwrite").objectStore("recents").put(entry); }catch(e){}
+}
+async function recentDel(key){
+  const d = await ensureDB(); if(!d) return;
+  try{ d.transaction("recents","readwrite").objectStore("recents").delete(key); }catch(e){}
+}
+/* stores a pointer to the file, never its contents */
+async function recordRecent(hdl){
+  if(!hdl) return;
+  try{
+    const all = await recentsAll();
+    let key = null;
+    for(const r of all){
+      if(r.handle && r.handle.isSameEntry){
+        try{ if(await r.handle.isSameEntry(hdl)){ key = r.key; break; } }catch(e){}
+      }
     }
+    if(!key){
+      const byName = all.find(r=>r.fileName === hdl.name);
+      key = byName ? byName.key
+                   : "r"+Date.now().toString(36)+Math.random().toString(36).slice(2,5);
+    }
+    await recentPut({ key, handle:hdl, fileName:hdl.name,
+                      title: project.title || "Untitled",
+                      pages: project.pages.length, at: Date.now() });
+    const after = await recentsAll();
+    for(const r of after.slice(RECENT_MAX)) recentDel(r.key);
+  }catch(e){
+    /* a browser that can't persist file handles lands here */
+    console.warn("Scrapbook Press: couldn't record a recent project.", e);
+  }
+}
+function ago(ts){
+  const s = Math.max(1, Math.round((Date.now()-ts)/1000));
+  if(s < 60) return "just now";
+  const m = Math.round(s/60); if(m < 60) return m + (m===1?" minute ago":" minutes ago");
+  const h2 = Math.round(m/60); if(h2 < 24) return h2 + (h2===1?" hour ago":" hours ago");
+  const d2 = Math.round(h2/24);
+  if(d2 === 1) return "yesterday";
+  if(d2 < 30) return d2 + " days ago";
+  return new Date(ts).toLocaleDateString();
+}
+
+async function renderRecents(){
+  const wrap = document.getElementById("recentList");
+  const list = await recentsAll();
+  wrap.innerHTML = "";
+  if(!list.length){
+    wrap.appendChild(h('<div class="rempty">No recent projects yet. Browse for a project file and it will appear here next time.</div>'));
     return;
   }
-  projPick.value=""; projPick.click();
+  list.forEach(r=>{
+    const row = h('<div class="rrow"></div>');
+    const meta = h('<div class="meta"></div>');
+    const t = document.createElement("div"); t.className = "t";
+    t.textContent = r.title || "Untitled";
+    const sline = document.createElement("div"); sline.className = "s";
+    sline.textContent = r.fileName + "  \u00B7  " + (r.pages||0) + " page" + (r.pages===1?"":"s")
+                      + "  \u00B7  " + ago(r.at);
+    meta.appendChild(t); meta.appendChild(sline);
+    const x = h('<div class="x" title="Forget this project">\u00D7</div>');
+    x.onclick = async e=>{ e.stopPropagation(); await recentDel(r.key); renderRecents(); };
+    row.appendChild(meta); row.appendChild(x);
+    row.onclick = ()=>openFromHandle(r.handle, r.key);
+    wrap.appendChild(row);
+  });
 }
+
+async function openFromHandle(hdl, key){
+  if(!hdl){ toast("That project can't be reopened \u2014 browse for the file instead."); return; }
+  try{
+    if(hdl.queryPermission){
+      let perm = await hdl.queryPermission({mode:"readwrite"});
+      if(perm !== "granted") perm = await hdl.requestPermission({mode:"readwrite"});
+      if(perm !== "granted"){ toast("Chrome wasn't given permission to open that file."); return; }
+    }
+    const f = await hdl.getFile();
+    const p = JSON.parse(await f.text());
+    if(!p || !Array.isArray(p.pages)) throw new Error("bad");
+    fileHandle = hdl; autoFileSave = true;
+    loadProject(p);
+    fileDirty = false; savedOnce = true; setFileLabel();
+    closeModal();
+    recordRecent(hdl);
+    toast("Opened " + f.name + " \u2014 " + p.pages.length + " page(s).");
+  }catch(e){
+    if(e && (e.name==="NotFoundError" || e.name==="NotReadableError")){
+      toast("That file has been moved, renamed or deleted.");
+      if(key){ await recentDel(key); renderRecents(); }
+    } else {
+      toast("Couldn't open that project file.");
+    }
+  }
+}
+
+async function browseProject(){
+  try{
+    const [hdl] = await window.showOpenFilePicker({
+      types:[{description:"Scrapbook project", accept:{"application/json":[".json"]}}]
+    });
+    const f = await hdl.getFile();
+    const p = JSON.parse(await f.text());
+    if(!p || !Array.isArray(p.pages)) throw new Error("bad");
+    fileHandle = hdl; autoFileSave = true;
+    loadProject(p);
+    fileDirty = false; savedOnce = true; setFileLabel();
+    closeModal();
+    recordRecent(hdl);
+    toast("Opened " + f.name + " \u2014 " + p.pages.length + " page(s).");
+  }catch(e){
+    if(e && e.name==="AbortError") return;
+    toast("That doesn't look like a scrapbook project file.");
+  }
+}
+
+async function openProject(){
+  if(!FSA){ projPick.value=""; projPick.click(); return; }
+  const list = await recentsAll();
+  if(!list.length) return browseProject();
+  await renderRecents();
+  document.getElementById("mRecent").classList.add("open");
+}
+document.getElementById("btnBrowse").onclick = browseProject;
 
 document.getElementById("btnSave").onclick = saveProject;
 document.getElementById("btnSaveAs").onclick = saveAs;
@@ -1655,8 +2721,12 @@ let db = null, dirty = false;
 function openDB(){
   return new Promise(res=>{
     try{
-      const r = indexedDB.open("scrapbook-builder", 1);
-      r.onupgradeneeded = ()=>{ r.result.createObjectStore("state"); };
+      const r = indexedDB.open("scrapbook-builder", 2);
+      r.onupgradeneeded = ()=>{
+        const d = r.result;
+        if(!d.objectStoreNames.contains("state")) d.createObjectStore("state");
+        if(!d.objectStoreNames.contains("recents")) d.createObjectStore("recents", {keyPath:"key"});
+      };
       r.onsuccess = ()=>res(r.result);
       r.onerror = ()=>res(null);
     }catch(e){ res(null); }
@@ -1669,42 +2739,207 @@ function markDirty(){
 async function autosave(){
   if(!dirty || !db) return;
   dirty = false;
+  const rec = {at:Date.now(), project};
   try{
+    /* keep the file reference too, so a restore reconnects to the real file */
     const tx = db.transaction("state","readwrite");
-    tx.objectStore("state").put({at:Date.now(), project}, "current");
-  }catch(e){}
+    tx.objectStore("state").put(Object.assign({}, rec, {handle:fileHandle||null}), "current");
+  }catch(e){
+    try{                       /* a browser that can't store handles still gets the pages */
+      const tx2 = db.transaction("state","readwrite");
+      tx2.objectStore("state").put(rec, "current");
+    }catch(e2){}
+  }
 }
 setInterval(autosave, 4000);
 window.addEventListener("beforeunload", autosave);
 
-async function tryRestore(){
-  db = await openDB();
-  if(!db) return;
-  try{
-    const tx = db.transaction("state","readonly");
-    const rq = tx.objectStore("state").get("current");
-    rq.onsuccess = ()=>{
-      const rec = rq.result;
-      if(rec && rec.project && Array.isArray(rec.project.pages)){
-        const n = rec.project.pages.length;
-        const when = new Date(rec.at).toLocaleString();
-        const bar = document.createElement("div");
-        bar.id = "toast"; bar.className = "show";
-        bar.style.pointerEvents = "auto";
-        bar.innerHTML = 'Unsaved work found from '+when+' ('+n+' page'+(n>1?"s":"")+'). ';
-        const b1 = document.createElement("button");
-        b1.className = "pri"; b1.textContent = "Restore";
-        b1.style.marginLeft = "8px";
-        b1.onclick = ()=>{ loadProject(rec.project); bar.remove(); };
-        const b2 = document.createElement("button");
-        b2.textContent = "Start fresh"; b2.style.marginLeft = "6px";
-        b2.onclick = ()=>bar.remove();
-        bar.appendChild(b1); bar.appendChild(b2);
-        document.body.appendChild(bar);
-      }
-    };
-  }catch(e){}
+function readAutosave(){
+  return new Promise(res=>{
+    if(!db) return res(null);
+    try{
+      const rq = db.transaction("state","readonly").objectStore("state").get("current");
+      rq.onsuccess = ()=>res(rq.result || null);
+      rq.onerror   = ()=>res(null);
+    }catch(e){ res(null); }
+  });
 }
+async function restoreAutosave(rec){
+  loadProject(rec.project);
+  fileDirty = false;
+  /* reattach the file if we kept a reference, so Ctrl+S writes back to it */
+  if(rec.handle){
+    try{
+      let perm = rec.handle.queryPermission
+        ? await rec.handle.queryPermission({mode:"readwrite"}) : "granted";
+      if(perm !== "granted" && rec.handle.requestPermission)
+        perm = await rec.handle.requestPermission({mode:"readwrite"});
+      if(perm === "granted"){
+        fileHandle = rec.handle; autoFileSave = true; savedOnce = true;
+      }
+    }catch(e){}
+  }
+  setFileLabel();
+  closeModal();
+  toast(fileHandle
+    ? ("Picked up where you left off \u2014 saving to " + fileHandle.name)
+    : "Restored your unsaved work. Use Save project as\u2026 to put it in a file.");
+}
+
+async function startup(){
+  db = await openDB();
+  const rec = await readAutosave();
+  const recents = (await recentsAll()).slice(0, 4);
+  const hasWork = rec && rec.project && Array.isArray(rec.project.pages);
+  if(!hasWork && !recents.length) return;      /* first visit: no card at all */
+
+  const wrap = document.getElementById("startList");
+  wrap.innerHTML = "";
+
+  if(hasWork){
+    const n = rec.project.pages.length;
+    const row = h('<div class="rrow"></div>');
+    const meta = h('<div class="meta"></div>');
+    const t = document.createElement("div"); t.className = "t";
+    t.textContent = (rec.project.title || "Untitled") + "  \u2014  unsaved work";
+    const sub = document.createElement("div"); sub.className = "s";
+    sub.textContent = n + " page" + (n===1?"":"s") + "  \u00B7  " + ago(rec.at)
+                    + (rec.handle ? ("  \u00B7  " + rec.handle.name) : "  \u00B7  not in a file yet");
+    meta.appendChild(t); meta.appendChild(sub);
+    row.appendChild(meta);
+    row.onclick = ()=>restoreAutosave(rec);
+    wrap.appendChild(row);
+  }
+
+  recents.forEach(r=>{
+    const row = h('<div class="rrow"></div>');
+    const meta = h('<div class="meta"></div>');
+    const t = document.createElement("div"); t.className = "t";
+    t.textContent = r.title || "Untitled";
+    const sub = document.createElement("div"); sub.className = "s";
+    sub.textContent = r.fileName + "  \u00B7  " + (r.pages||0) + " page"
+                    + (r.pages===1?"":"s") + "  \u00B7  " + ago(r.at);
+    meta.appendChild(t); meta.appendChild(sub);
+    row.appendChild(meta);
+    row.onclick = ()=>openFromHandle(r.handle, r.key);
+    wrap.appendChild(row);
+  });
+
+  document.getElementById("mStart").classList.add("open");
+}
+document.getElementById("btnStartFresh").onclick = ()=>closeModal();
+
+/* ---------- contact form ----------
+   Leave both blank and the form composes an email instead, so the page keeps
+   making no network requests of its own. Fill ONE in to accept messages
+   in-page: a Web3Forms access key, or a full endpoint URL (Formspree,
+   FormSubmit and friends all take a plain POST). */
+const CONTACT = {
+  web3formsKey: "",
+  endpoint: ""
+};
+const CONTACT_EMAIL = ["Jonathanecrow", String.fromCharCode(64), "yahoo", ".com"].join("");
+
+const cForm = document.getElementById("contactForm");
+const cStatus = document.getElementById("cStatus");
+const cNote = document.getElementById("cNote");
+
+document.getElementById("feedbackLink").onclick = e=>{
+  e.preventDefault();
+  closeModal();
+  cStatus.innerHTML = "";
+  cNote.textContent = (CONTACT.web3formsKey || CONTACT.endpoint)
+    ? "Your message goes straight to me. Leave an email if you would like a reply."
+    : "This opens your email app with the message ready to send.";
+  document.getElementById("mContact").classList.add("open");
+  setTimeout(()=>document.getElementById("cName").focus(), 60);
+};
+
+cForm.addEventListener("submit", async e=>{
+  e.preventDefault();
+  if(document.getElementById("cHp").value) return;        /* a bot filled the hidden field */
+
+  const name = document.getElementById("cName").value.trim();
+  const mail = document.getElementById("cMail").value.trim();
+  const msg  = document.getElementById("cMsg").value.trim();
+  cStatus.innerHTML = "";
+  if(!msg){
+    cStatus.innerHTML = '<div class="ferr">Please write a message first.</div>';
+    document.getElementById("cMsg").focus();
+    return;
+  }
+
+  const btn = document.getElementById("cSend");
+  const configured = CONTACT.web3formsKey || CONTACT.endpoint;
+
+  if(!configured){
+    const body = (name ? "From: " + name + "\n" : "") + (mail ? "Email: " + mail + "\n\n" : "\n") + msg;
+    const href = "mailto:" + CONTACT_EMAIL
+               + "?subject=" + encodeURIComponent("Scrapbook Press feedback")
+               + "&body=" + encodeURIComponent(body);
+    const a = document.createElement("a");
+    a.href = href; document.body.appendChild(a); a.click(); a.remove();
+    /* Plenty of machines have no mail app wired up and the click does nothing,
+       so make the typed message recoverable instead of a dead end. */
+    cStatus.innerHTML = '<div class="fok">Your email app should be opening with this message ready to send.</div>'
+      + '<div class="fnote" style="margin-top:6px">Nothing happened? Copy it and send it yourself.</div>';
+    const copyRow = document.createElement("div");
+    copyRow.className = "row tight";
+    copyRow.style.marginTop = "8px";
+    const cb = document.createElement("button");
+    cb.type = "button"; cb.className = "sm"; cb.textContent = "Copy message";
+    cb.onclick = async ()=>{
+      try{
+        await navigator.clipboard.writeText("To: " + CONTACT_EMAIL + "\n"
+          + "Subject: Scrapbook Press feedback\n\n" + body);
+        cb.textContent = "Copied";
+        setTimeout(()=>{ cb.textContent = "Copy message"; }, 1800);
+      }catch(err){ toast("Couldn\u2019t copy \u2014 select the text and copy it manually."); }
+    };
+    const ab = document.createElement("button");
+    ab.type = "button"; ab.className = "sm"; ab.textContent = "Copy address";
+    ab.onclick = async ()=>{
+      try{
+        await navigator.clipboard.writeText(CONTACT_EMAIL);
+        ab.textContent = "Copied";
+        setTimeout(()=>{ ab.textContent = "Copy address"; }, 1800);
+      }catch(err){}
+    };
+    copyRow.appendChild(cb); copyRow.appendChild(ab);
+    cStatus.appendChild(copyRow);
+    return;
+  }
+
+  btn.disabled = true; btn.textContent = "Sending\u2026";
+  try{
+    let res;
+    if(CONTACT.web3formsKey){
+      res = await fetch("https://api.web3forms.com/submit", {
+        method:"POST",
+        headers:{"Content-Type":"application/json", "Accept":"application/json"},
+        body: JSON.stringify({ access_key:CONTACT.web3formsKey,
+                               subject:"Scrapbook Press feedback",
+                               name, email:mail, message:msg })
+      });
+    } else {
+      res = await fetch(CONTACT.endpoint, {
+        method:"POST", headers:{"Accept":"application/json"},
+        body: new FormData(cForm)
+      });
+    }
+    if(res.ok){
+      cForm.reset();
+      cStatus.innerHTML = '<div class="fok">Thanks for submitting \u2014 I\u2019ll read every one.</div>';
+    } else {
+      cStatus.innerHTML = '<div class="ferr">That didn\u2019t go through. You can email '
+                        + CONTACT_EMAIL + ' instead.</div>';
+    }
+  }catch(err){
+    cStatus.innerHTML = '<div class="ferr">Couldn\u2019t reach the server. You can email '
+                      + CONTACT_EMAIL + ' instead.</div>';
+  }
+  btn.disabled = false; btn.textContent = "Send";
+});
 
 /* ============================================================
    Export: PNG + PDF
@@ -1843,8 +3078,8 @@ function toast(msg){
   p.zones[0].text = "2019";
   p.zones[0].size = 56;
   p.zones[1].text = "the year, finally";
-  loadUserTemplates();
-  render(); drawList(); buildInsp(); setFileLabel(); tryRestore();
+  loadUserTemplates(); loadSects(); loadPanels(); applyPanels();
+  render(); drawList(); buildInsp(); setFileLabel(); startup();
 })();
 </script>
 </body>

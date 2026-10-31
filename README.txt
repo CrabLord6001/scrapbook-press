@@ -69,11 +69,11 @@ Adding photos   Tap "Add photo" on any empty zone to pick a file -- on a
                 empty zones in order, so a four-photo layout fills in one
                 motion. Dropping onto empty space creates a new photo.
 
-Cropping        Drag inside a photo to re-centre it. Pinch, scroll-wheel,
+Cropping        Drag inside a photo to re-center it. Pinch, scroll-wheel,
                 or use the Zoom slider, to crop in and out.
 
 Text            Click a text zone and type. No length limit. Font, size,
-                alignment and colour are in the panel on the right.
+                alignment and color are in the panel on the right.
 
 Zones           Nothing is fixed. Select a zone to move it (blue bar),
                 resize it (corner handles), rotate it, duplicate it or
