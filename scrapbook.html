@@ -1,0 +1,1851 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Scrapbook Press</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='11' fill='%231b1c20'/%3E%3Crect x='12' y='13' width='40' height='27' rx='2' fill='%23c08a4a'/%3E%3Crect x='12' y='45' width='26' height='3.4' rx='1.7' fill='%238a8f99'/%3E%3Crect x='12' y='52' width='40' height='3.4' rx='1.7' fill='%238a8f99'/%3E%3C/svg%3E">
+<style>
+  :root{
+    --bg:#1b1c20; --panel:#24262c; --panel2:#2c2f36; --line:#3a3d46;
+    --ink:#e8e9ec; --dim:#9ea3ad; --accent:#c08a4a; --accent2:#7aa7c7;
+    --hs:11px;
+  }
+  @media (pointer:coarse){ :root{ --hs:19px } }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    background:var(--bg); color:var(--ink);
+    font:14px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    overflow:hidden;
+  }
+  button,select,input,textarea{font:inherit;color:inherit}
+  button{
+    background:var(--panel2); border:1px solid var(--line); color:var(--ink);
+    padding:5px 10px; border-radius:6px; cursor:pointer; white-space:nowrap;
+  }
+  #bar button, #bar select{flex:none}
+  button:hover{background:#363a43}
+  button.pri{background:var(--accent); border-color:var(--accent); color:#1b1206; font-weight:600}
+  button.pri:hover{filter:brightness(1.08)}
+  button.sm{padding:3px 7px; font-size:12px}
+  button.on{background:var(--accent2); border-color:var(--accent2); color:#0d1a22; font-weight:600}
+  select,input[type=text],input[type=number]{
+    background:#1f2126; border:1px solid var(--line); border-radius:6px; padding:4px 6px;
+  }
+  input[type=color]{background:none;border:1px solid var(--line);border-radius:6px;width:34px;height:26px;padding:1px;cursor:pointer}
+  input[type=range]{width:100%}
+  label.fld{display:block;font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--dim);margin:10px 0 3px}
+
+  /* ---------- chrome ---------- */
+  #bar{
+    height:48px; display:flex; align-items:center; gap:8px; padding:0 10px;
+    background:var(--panel); border-bottom:1px solid var(--line); position:relative; z-index:5;
+  }
+  #bar .brand{font-weight:700; letter-spacing:.02em; margin-right:6px; white-space:nowrap}
+  #bar .brand span{color:var(--accent)}
+  .sep{width:1px;height:24px;background:var(--line);margin:0 2px}
+  .grow{flex:1}
+  #main{display:flex; height:calc(100% - 48px)}
+  #pagesPane{
+    width:150px; flex:none; background:var(--panel); border-right:1px solid var(--line);
+    display:flex; flex-direction:column;
+  }
+  #pageList{flex:1; overflow:auto; padding:8px}
+  .pthumb{
+    border:2px solid transparent; border-radius:6px; margin-bottom:8px; cursor:pointer;
+    background:var(--panel2); padding:4px; position:relative;
+  }
+  .pthumb.sel{border-color:var(--accent)}
+  .pthumb canvas{display:block;width:100%;height:auto;background:#fff;border-radius:3px}
+  .pthumb .n{font-size:11px;color:var(--dim);margin-top:3px;display:flex;justify-content:space-between;gap:4px}
+  .pthumb .n b{color:var(--ink);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #pagesFoot{padding:8px;border-top:1px solid var(--line);display:flex;flex-wrap:wrap;gap:4px}
+
+  #stageWrap{flex:1; overflow:auto; position:relative; display:flex}
+  #stage{margin:auto; padding:28px}
+  #page{
+    position:relative; background:#fff; box-shadow:0 10px 40px rgba(0,0,0,.55);
+    outline:1px solid rgba(255,255,255,.08);
+  }
+  #page.drop{outline:3px dashed var(--accent); outline-offset:3px}
+
+  .zone{position:absolute; overflow:hidden}
+  .zone .imgwrap{position:absolute;inset:0;overflow:hidden}
+  .zone img{position:absolute; user-select:none; -webkit-user-drag:none}
+  .zone textarea{
+    position:absolute;inset:0;width:100%;height:100%;background:none;border:0;resize:none;
+    overflow:hidden;outline:none;
+  }
+  .zone .ph{
+    position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    flex-direction:column;gap:4px;color:#9aa0ab;font-size:12px;text-align:center;padding:6px;
+    background:repeating-linear-gradient(45deg,#f2f2f0,#f2f2f0 9px,#eceae6 9px,#eceae6 18px);
+    pointer-events:none;
+  }
+  .zone .ph svg{opacity:.5}
+  .zone.selzone{z-index:50}
+  .selbox{position:absolute;pointer-events:none;z-index:60}
+  .selbox .edge{position:absolute;inset:0;border:1.5px solid var(--accent2);box-shadow:0 0 0 1px rgba(0,0,0,.25)}
+  .h{position:absolute;width:var(--hs);height:var(--hs);background:#fff;
+     border:1.5px solid var(--accent2);border-radius:2px;pointer-events:auto}
+  .h.nw{left:calc(var(--hs)/-2);top:calc(var(--hs)/-2);cursor:nwse-resize}
+  .h.ne{right:calc(var(--hs)/-2);top:calc(var(--hs)/-2);cursor:nesw-resize}
+  .h.sw{left:calc(var(--hs)/-2);bottom:calc(var(--hs)/-2);cursor:nesw-resize}
+  .h.se{right:calc(var(--hs)/-2);bottom:calc(var(--hs)/-2);cursor:nwse-resize}
+  .h.n{left:50%;top:calc(var(--hs)/-2);margin-left:calc(var(--hs)/-2);cursor:ns-resize}
+  .h.s{left:50%;bottom:calc(var(--hs)/-2);margin-left:calc(var(--hs)/-2);cursor:ns-resize}
+  .h.w{left:calc(var(--hs)/-2);top:50%;margin-top:calc(var(--hs)/-2);cursor:ew-resize}
+  .h.e{right:calc(var(--hs)/-2);top:50%;margin-top:calc(var(--hs)/-2);cursor:ew-resize}
+  .movebar{
+    position:absolute;left:0;right:0;top:-24px;height:20px;background:var(--accent2);color:#0d1a22;
+    border-radius:4px;display:flex;align-items:center;gap:6px;padding:0 6px;font-size:11px;font-weight:600;
+    cursor:move;pointer-events:auto;white-space:nowrap;
+  }
+  .movebar .rot{cursor:grab;opacity:.75}
+  .movebar .rot:hover{opacity:1}
+
+  #insp{
+    width:252px;flex:none;background:var(--panel);border-left:1px solid var(--line);
+    overflow:auto;padding:12px;
+  }
+  #insp h3{margin:0 0 2px;font-size:13px;letter-spacing:.03em;text-transform:uppercase;color:var(--accent)}
+  #insp .hint{color:var(--dim);font-size:12px;margin:6px 0 14px}
+  .row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+  .row.tight{gap:4px}
+  .num{width:62px}
+  hr{border:0;border-top:1px solid var(--line);margin:14px 0}
+
+  /* ---------- modal ---------- */
+  .modal{position:fixed;inset:0;background:rgba(10,11,13,.72);display:none;z-index:200;overflow:auto}
+  .modal.open{display:block}
+  .sheet{
+    background:var(--panel);max-width:860px;margin:40px auto;border:1px solid var(--line);
+    border-radius:12px;padding:20px;
+  }
+  .sheet h2{margin:0 0 4px;font-size:18px}
+  .sheet p.sub{margin:0 0 16px;color:var(--dim)}
+  .tgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+  .tcard{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:8px;
+         cursor:pointer;text-align:left;position:relative;display:block;width:100%;color:var(--ink)}
+  .tcard:hover{border-color:var(--accent)}
+  .tcard .del{
+    position:absolute;top:5px;right:5px;width:22px;height:22px;line-height:20px;text-align:center;
+    background:rgba(20,21,24,.82);border:1px solid var(--line);border-radius:5px;color:var(--dim);
+    font-size:14px;
+  }
+  .tcard .del:hover{color:#fff;background:#8c3b3b;border-color:#8c3b3b}
+  .tcard svg{display:block;width:100%;height:auto;background:#fff;border-radius:4px}
+  .tcard .nm{font-size:12px;margin-top:6px;color:var(--ink)}
+  .mfoot{display:flex;justify-content:flex-end;gap:8px;margin-top:18px;align-items:center;flex-wrap:wrap}
+  #toast{
+    position:fixed;left:50%;bottom:24px;transform:translateX(-50%);
+    background:#111317;border:1px solid var(--line);padding:9px 16px;border-radius:8px;
+    z-index:300;opacity:0;transition:opacity .2s;pointer-events:none;max-width:70vw;
+  }
+  #toast.show{opacity:1}
+  .kb{font-size:11.5px;color:var(--dim);line-height:1.7}
+  .kb b{color:var(--ink);font-weight:600;background:#1f2126;border:1px solid var(--line);border-radius:4px;padding:0 4px}
+
+  /* ---------- touch + small screens ---------- */
+  .zone{touch-action:none}
+  .zone textarea{touch-action:auto}
+  .ph .add{
+    pointer-events:auto; background:#fff; border:1px solid #c9c4ba; color:#4a463f;
+    border-radius:7px; padding:8px 13px; font-size:13px; font-weight:600;
+    cursor:pointer; box-shadow:0 1px 3px rgba(0,0,0,.15);
+  }
+  .ph .add:hover{background:#f6f4f0}
+  .onlySmall{display:none !important}
+  #scrim{position:fixed;inset:48px 0 0;background:rgba(0,0,0,.5);z-index:110;display:none}
+  #scrim.on{display:block}
+  #fab{
+    position:fixed;right:14px;bottom:14px;z-index:115;
+    background:var(--accent2);border-color:var(--accent2);color:#0d1a22;font-weight:600;
+    padding:11px 16px;border-radius:24px;box-shadow:0 4px 16px rgba(0,0,0,.45);
+  }
+  @media (max-width:920px){
+    #bar{overflow-x:auto;overflow-y:hidden;gap:5px;padding:0 8px;scrollbar-width:none}
+    #bar::-webkit-scrollbar{display:none}
+    #bar button,#bar select{padding:5px 8px;font-size:13px}
+    #bar .brand{display:none}
+    .ph .add{padding:6px 10px;font-size:12px}
+    .ph svg{display:none}
+    #bar .grow{flex:0 0 4px}
+    .onlySmall{display:inline-flex !important}
+    .hideSmall{display:none !important}
+    #pagesPane,#insp{
+      position:fixed;top:48px;bottom:0;z-index:120;transition:transform .18s ease;
+      box-shadow:0 0 44px rgba(0,0,0,.6);
+    }
+    #pagesPane{left:0;width:170px;transform:translateX(-101%)}
+    #insp{right:0;width:min(300px,86vw);transform:translateX(101%)}
+    #pagesPane.open,#insp.open{transform:none}
+    #stageWrap{width:100%}
+    #stage{padding:10px}
+    #fab.show{display:inline-flex}
+    .sheet{margin:16px auto;padding:16px}
+  }
+  #fab{display:none}
+  #fname{
+    font-size:12px;color:var(--ink);background:#1f2126;border:1px solid var(--line);
+    border-radius:6px;padding:4px 8px;max-width:190px;overflow:hidden;text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  #fname.unsaved{color:var(--dim);font-style:italic}
+  .local{font-size:11px;color:var(--dim);display:flex;align-items:center;gap:5px;white-space:nowrap}
+  .local .dot{width:7px;height:7px;border-radius:50%;background:#5cb85c;flex:none}
+</style>
+</head>
+<body>
+
+<header id="bar">
+  <div class="brand">Scrapbook&nbsp;<span>Press</span></div>
+  <button class="onlySmall" id="btnPagesDrawer" title="Pages">☰</button>
+  <div class="sep hideSmall"></div>
+  <button id="btnPhotos" class="pri" title="Add photos from this device">Add photos</button>
+  <button id="btnTemplate">Templates…</button>
+  <button id="btnAddImg" title="Add an image zone">+ Image</button>
+  <button id="btnAddTxt" title="Add a text zone">+ Text</button>
+  <div class="sep"></div>
+  <select id="selSize" title="Page size"></select>
+  <select id="selZoom" title="Zoom">
+    <option value="fit">Fit</option>
+    <option value="0.5">50%</option>
+    <option value="0.75">75%</option>
+    <option value="1">100%</option>
+    <option value="1.5">150%</option>
+  </select>
+  <div class="grow"></div>
+  <span id="fname" title="Current project file">unsaved</span>
+  <button id="btnSave">Save</button>
+  <button id="btnSaveAs">Save as…</button>
+  <button id="btnOpen">Open…</button>
+  <div class="sep"></div>
+  <button id="btnExportPng">PNG</button>
+  <button id="btnExportPdf" class="pri">Export PDF</button>
+  <button id="btnHelp" title="Shortcuts">?</button>
+</header>
+
+<div id="main">
+  <aside id="pagesPane">
+    <div id="pageList"></div>
+    <div id="pagesFoot">
+      <button class="sm" id="btnPageAdd">+ Page</button>
+      <button class="sm" id="btnPageDup">Duplicate</button>
+      <button class="sm" id="btnPageUp">↑</button>
+      <button class="sm" id="btnPageDown">↓</button>
+      <button class="sm" id="btnPageDel">Delete</button>
+    </div>
+  </aside>
+
+  <div id="stageWrap">
+    <div id="stage"><div id="page"></div></div>
+  </div>
+
+  <aside id="insp"></aside>
+</div>
+
+<div class="modal" id="mTemplate">
+  <div class="sheet">
+    <h2>Page templates</h2>
+    <p class="sub">Applying a template replaces this page's zones. Photos and writing already on the page are re-used where they fit.</p>
+    <div id="tMineWrap" style="display:none">
+      <label class="fld" style="margin-top:0">Your templates</label>
+      <div class="tgrid" id="tGridMine"></div>
+      <hr>
+    </div>
+    <label class="fld" style="margin-top:0">Built in</label>
+    <div class="tgrid" id="tGrid"></div>
+    <div class="mfoot">
+      <button id="btnTplExport" title="Save your templates to a file">Back up templates</button>
+      <button id="btnTplImport" title="Load templates from a file">Restore…</button>
+      <div class="grow"></div>
+      <button id="btnSaveTpl">Save this page as a template</button>
+      <button onclick="closeModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="mSaveTpl">
+  <div class="sheet" style="max-width:430px">
+    <h2>Save as template</h2>
+    <p class="sub">Keeps this page's zones, fonts, frames and rotation. Your photos and writing are left out.</p>
+    <label class="fld">Name it</label>
+    <input type="text" id="tplName" style="width:100%" placeholder="e.g. Four photos + journal">
+    <div class="mfoot">
+      <button onclick="closeModal()">Cancel</button>
+      <button class="pri" id="tplSaveGo">Save template</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="mExport">
+  <div class="sheet" style="max-width:460px">
+    <h2>Export PDF</h2>
+    <p class="sub">Each page becomes one PDF page at its true physical size.</p>
+    <label class="fld">Pages</label>
+    <select id="expScope" style="width:100%">
+      <option value="all">All pages</option>
+      <option value="one">This page only</option>
+    </select>
+    <label class="fld">Resolution</label>
+    <select id="expDpi" style="width:100%">
+      <option value="300">300 DPI — print shops, photo books</option>
+      <option value="200">200 DPI — home printing, smaller file</option>
+      <option value="150">150 DPI — proofing / email</option>
+    </select>
+    <label class="fld">JPEG quality</label>
+    <select id="expQ" style="width:100%">
+      <option value="0.94">High</option>
+      <option value="0.85">Medium</option>
+    </select>
+    <div class="mfoot">
+      <button onclick="closeModal()">Cancel</button>
+      <button class="pri" id="expGo">Export</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="mHelp">
+  <div class="sheet" style="max-width:520px">
+    <h2>Scrapbook Press — how it works</h2>
+    <p class="sub">The point is that a page should take two minutes, not forty.</p>
+    <div class="kb">
+      1. Pick a template for the page.<br>
+      2. Add photos — tap <b>Add photo</b> on any empty zone, or <b>Add photos</b> in the toolbar to fill
+         several zones at once. On a computer you can also drag photos from a folder straight onto the page.<br>
+      3. Drag inside a photo to re-centre it. Pinch, scroll-wheel, or the Zoom slider to crop.<br>
+      4. Click a text zone and write as much or as little as you want.<br>
+      5. <b>Save as…</b> once to choose a project file; after that <b>Ctrl/⌘+S</b> writes straight back to it, and it saves itself every minute.<br><br>
+      Your project file is the real copy. The browser keeps a spare of your work and your
+      template library, and clearing your browsing data erases those — but it can never
+      touch a file you have saved. Templates also ride along inside project files, and
+      <b>Back up templates</b> writes them to a file of their own.<br><br>
+      <div class="local" style="margin-bottom:12px">
+        <span class="dot"></span>
+        Runs entirely on this computer. No accounts, no uploads, no internet —
+        your photos and writing never leave this machine.
+      </div>
+      On a phone or tablet: <b>☰</b> opens the pages, and selecting a zone brings up
+      <b>Edit this zone</b> at the bottom right for all its settings.<br><br>
+      <b>Drag</b> inside a photo — pan &nbsp; <b>Wheel / pinch</b> — zoom<br>
+      <b>Double-click</b> an image zone — choose a file<br>
+      <b>Blue bar</b> above a selected zone — move it &nbsp; <b>↻</b> — rotate<br>
+      <b>Arrows</b> nudge &nbsp; <b>Shift+Arrows</b> nudge further<br>
+      <b>Ctrl/⌘+D</b> duplicate &nbsp; <b>Delete</b> remove zone &nbsp; <b>Esc</b> deselect<br>
+      <b>PgUp / PgDn</b> previous / next page
+    </div>
+    <div class="mfoot"><button class="pri" onclick="closeModal()">Got it</button></div>
+  </div>
+</div>
+
+<input type="file" id="filePick" accept="image/*" multiple style="display:none">
+<input type="file" id="projPick" accept=".json,application/json" style="display:none">
+<input type="file" id="tplPick" accept=".json,application/json" style="display:none">
+<div id="scrim"></div>
+<button id="fab">Edit this zone ▸</button>
+<div id="toast"></div>
+
+<script>
+"use strict";
+
+/* ============================================================
+   Page sizes, fonts, templates
+   ============================================================ */
+const SIZES = {
+  "12x12":  {w:12,  h:12,  label:"12 × 12 in — album"},
+  "8x8":    {w:8,   h:8,   label:"8 × 8 in — album"},
+  "letterP":{w:8.5, h:11,  label:"8.5 × 11 in — portrait"},
+  "letterL":{w:11,  h:8.5, label:"11 × 8.5 in — landscape"},
+  "a4P":    {w:8.27,h:11.69,label:"A4 — portrait"}
+};
+
+const FONTS = [
+  ["Georgia, 'Times New Roman', serif", "Georgia"],
+  ["'Palatino Linotype', Palatino, Georgia, serif", "Palatino"],
+  ["'Times New Roman', Times, serif", "Times"],
+  ["Helvetica, Arial, sans-serif", "Helvetica"],
+  ["Verdana, Geneva, sans-serif", "Verdana"],
+  ["'Trebuchet MS', Tahoma, sans-serif", "Trebuchet"],
+  ["'Courier New', Courier, monospace", "Courier"],
+  ["'Brush Script MT', 'Segoe Script', cursive", "Handwritten"],
+  ["'Comic Sans MS', 'Chalkboard', cursive", "Casual"]
+];
+
+const FILTERS = {
+  none:"", bw:"grayscale(1)", sepia:"sepia(.6) saturate(1.1)",
+  warm:"saturate(1.15) hue-rotate(-6deg) brightness(1.03)",
+  cool:"saturate(1.05) hue-rotate(10deg)",
+  fade:"saturate(.72) brightness(1.07) contrast(.92)"
+};
+
+let uid = 1;
+const nid = () => "z" + (uid++) + "_" + Math.random().toString(36).slice(2,6);
+
+function imgZone(x,y,w,h,extra){
+  return Object.assign({
+    id:nid(), type:"image", x,y,w,h, rot:0,
+    src:null, fit:"cover", scale:1, ox:0, oy:0, filter:"none",
+    bg:"#f4f3f0", border:0, bcolor:"#2b2b2b", radius:0, shadow:false
+  }, extra||{});
+}
+function txtZone(x,y,w,h,extra){
+  return Object.assign({
+    id:nid(), type:"text", x,y,w,h, rot:0,
+    text:"", font:FONTS[0][0], size:13, weight:400, italic:false,
+    align:"left", valign:"top", color:"#2f2b26", lh:1.45, pad:7,
+    bg:"", border:0, bcolor:"#2b2b2b", radius:0, shadow:false
+  }, extra||{});
+}
+
+/* Templates use fractional coordinates, so they work at any page size. */
+const TEMPLATES = [
+  { name:"Full photo + caption", build:()=>[
+      imgZone(.05,.05,.90,.72),
+      txtZone(.05,.80,.90,.15)
+  ]},
+  { name:"Photo + journal", build:()=>[
+      imgZone(.05,.05,.52,.90),
+      txtZone(.605,.05,.345,.90)
+  ]},
+  { name:"Two + side journal", build:()=>[
+      imgZone(.05,.05,.50,.44),
+      imgZone(.05,.51,.50,.44),
+      txtZone(.585,.05,.365,.90)
+  ]},
+  { name:"Four-up + footer", build:()=>[
+      imgZone(.05,.05,.435,.355), imgZone(.515,.05,.435,.355),
+      imgZone(.05,.425,.435,.355), imgZone(.515,.425,.435,.355),
+      txtZone(.05,.80,.90,.15)
+  ]},
+  { name:"Nine squares", build:()=>{
+      const z=[]; const m=.05, g=.012, s=(.90-2*g)/3;
+      for(let r=0;r<3;r++) for(let c=0;c<3;c++) z.push(imgZone(m+c*(s+g), m+r*(s+g), s, s));
+      return z;
+  }},
+  { name:"Hero + three", build:()=>[
+      imgZone(.05,.05,.90,.48),
+      imgZone(.05,.55,.288,.22), imgZone(.356,.55,.288,.22), imgZone(.662,.55,.288,.22),
+      txtZone(.05,.79,.90,.16)
+  ]},
+  { name:"Journal-heavy", build:()=>[
+      txtZone(.05,.05,.90,.085,{size:26,weight:700,font:FONTS[0][0],text:""}),
+      txtZone(.05,.155,.555,.795),
+      imgZone(.635,.155,.315,.42),
+      txtZone(.635,.59,.315,.36,{size:11.5,italic:true})
+  ]},
+  { name:"Collage 1 + 2", build:()=>[
+      imgZone(.05,.05,.545,.60),
+      imgZone(.625,.05,.325,.29), imgZone(.625,.36,.325,.29),
+      txtZone(.05,.68,.90,.27)
+  ]},
+  { name:"Title page", build:()=>[
+      txtZone(.10,.10,.80,.11,{size:40,weight:700,align:"center"}),
+      txtZone(.10,.225,.80,.06,{size:14,align:"center",italic:true}),
+      imgZone(.15,.32,.70,.56)
+  ]},
+  { name:"Two-up landscape", build:()=>[
+      imgZone(.05,.08,.435,.60), imgZone(.515,.08,.435,.60),
+      txtZone(.05,.72,.435,.22), txtZone(.515,.72,.435,.22)
+  ]},
+  { name:"Photo strip + journal", build:()=>[
+      imgZone(.05,.05,.21,.33), imgZone(.275,.05,.21,.33),
+      imgZone(.50,.05,.21,.33), imgZone(.725,.05,.225,.33),
+      txtZone(.05,.42,.90,.53)
+  ]},
+  { name:"Blank", build:()=>[] }
+];
+
+/* ============================================================
+   Project state
+   ============================================================ */
+function newPage(tplIndex){
+  return { id:nid(), name:"Page", note:"", bg:"#ffffff",
+           zones: TEMPLATES[tplIndex==null?0:tplIndex].build() };
+}
+let project = { version:1, title:"My Year", size:"12x12", pages:[newPage(8)] };
+let cur = 0, sel = null, zoom = "fit";
+
+const pageEl   = document.getElementById("page");
+const stageWrap= document.getElementById("stageWrap");
+const inspEl   = document.getElementById("insp");
+const listEl   = document.getElementById("pageList");
+
+const page = () => project.pages[cur];
+const size = () => SIZES[project.size];
+const selZone = () => page().zones.find(z=>z.id===sel) || null;
+
+/* px per inch on screen */
+let PPI = 60;
+function computePPI(){
+  if(zoom!=="fit") { PPI = 96*parseFloat(zoom); return; }
+  const availW = stageWrap.clientWidth - 70, availH = stageWrap.clientHeight - 70;
+  PPI = Math.max(20, Math.min(availW/size().w, availH/size().h));
+}
+const pt = v => v*PPI/72;   /* points → screen px */
+
+/* ============================================================
+   Image cache
+   ============================================================ */
+const imgCache = new Map();
+function getImg(src){
+  if(!src) return null;
+  let rec = imgCache.get(src);
+  if(!rec){
+    const im = new Image();
+    rec = {im, ready:false};
+    im.onload = ()=>{ rec.ready=true; render(); queueThumbs(); };
+    im.src = src;
+    imgCache.set(src, rec);
+  }
+  return rec;
+}
+function allImagesReady(pages){
+  const ps=[];
+  pages.forEach(p=>p.zones.forEach(z=>{
+    if(z.type==="image" && z.src){
+      const rec=getImg(z.src);
+      if(!rec.ready) ps.push(new Promise(res=>{
+        const t=setInterval(()=>{ if(rec.ready){clearInterval(t);res();} },50);
+        setTimeout(()=>{clearInterval(t);res();},8000);
+      }));
+    }
+  }));
+  return Promise.all(ps);
+}
+
+/* Downscale on import so project files stay sane. */
+const MAXPX = 2400;
+function fileToZoneSrc(file){
+  return new Promise((resolve,reject)=>{
+    const fr = new FileReader();
+    fr.onerror = reject;
+    fr.onload = ()=>{
+      const im = new Image();
+      im.onerror = reject;
+      im.onload = ()=>{
+        const keepAlpha = /png|svg|gif|webp/i.test(file.type);
+        const s = Math.min(1, MAXPX/Math.max(im.width,im.height));
+        if(s>=1 && fr.result.length < 3_500_000){
+          resolve({src:fr.result, alpha:keepAlpha}); return;
+        }
+        const c = document.createElement("canvas");
+        c.width = Math.max(1,Math.round(im.width*s));
+        c.height= Math.max(1,Math.round(im.height*s));
+        const g = c.getContext("2d");
+        if(!keepAlpha){ g.fillStyle="#fff"; g.fillRect(0,0,c.width,c.height); }
+        g.drawImage(im,0,0,c.width,c.height);
+        resolve({ src: keepAlpha ? c.toDataURL("image/png") : c.toDataURL("image/jpeg",0.92),
+                  alpha: keepAlpha });
+      };
+      im.src = fr.result;
+    };
+    fr.readAsDataURL(file);
+  });
+}
+
+/* ============================================================
+   Geometry helpers
+   ============================================================ */
+function imgRect(z, w, h, rec){
+  const iw = rec.im.naturalWidth || 1, ih = rec.im.naturalHeight || 1;
+  const base = z.fit==="cover" ? Math.max(w/iw, h/ih) : Math.min(w/iw, h/ih);
+  const s = base * (z.scale||1);
+  const dw = iw*s, dh = ih*s;
+  return { dx:(w-dw)/2 + (z.ox||0)*w, dy:(h-dh)/2 + (z.oy||0)*h, dw, dh };
+}
+function roundRect(g,x,y,w,h,r){
+  r = Math.max(0, Math.min(r, Math.min(w,h)/2));
+  g.beginPath();
+  g.moveTo(x+r,y); g.arcTo(x+w,y,x+w,y+h,r); g.arcTo(x+w,y+h,x,y+h,r);
+  g.arcTo(x,y+h,x,y,r); g.arcTo(x,y,x+w,y,r); g.closePath();
+}
+function wrapLines(g, text, maxW){
+  const out=[];
+  for(const para of String(text).split("\n")){
+    if(para===""){ out.push(""); continue; }
+    let line="";
+    for(const word of para.split(/\s+/)){
+      let w = word;
+      while(g.measureText(w).width > maxW && w.length>1){
+        let i=1;
+        while(i<w.length && g.measureText(w.slice(0,i+1)).width<=maxW) i++;
+        if(line) { out.push(line); line=""; }
+        out.push(w.slice(0,i)); w = w.slice(i);
+      }
+      const test = line ? line+" "+w : w;
+      if(g.measureText(test).width <= maxW || !line) line = test;
+      else { out.push(line); line = w; }
+    }
+    out.push(line);
+  }
+  return out;
+}
+
+/* ============================================================
+   Canvas renderer — one function for thumbs, PNG and PDF
+   ============================================================ */
+function renderToCanvas(p, dpi){
+  const sz = size();
+  const c = document.createElement("canvas");
+  c.width = Math.round(sz.w*dpi); c.height = Math.round(sz.h*dpi);
+  const g = c.getContext("2d");
+  const u = v => v*dpi/72;                 /* points → device px */
+  g.fillStyle = p.bg || "#ffffff";
+  g.fillRect(0,0,c.width,c.height);
+
+  for(const z of p.zones){
+    const w = z.w*c.width, h = z.h*c.height;
+    const x = z.x*c.width, y = z.y*c.height;
+    g.save();
+    g.translate(x+w/2, y+h/2);
+    if(z.rot) g.rotate(z.rot*Math.PI/180);
+    g.translate(-w/2, -h/2);
+    const r = u(z.radius||0);
+
+    if(z.shadow){
+      g.save();
+      g.shadowColor = "rgba(0,0,0,.33)";
+      g.shadowBlur = u(7); g.shadowOffsetY = u(3);
+      g.fillStyle = "rgba(0,0,0,.001)";
+      roundRect(g,0,0,w,h,r); g.fill();
+      g.restore();
+    }
+    if(z.bg){ g.fillStyle = z.bg; roundRect(g,0,0,w,h,r); g.fill(); }
+
+    if(z.type==="image" && z.src){
+      const rec = getImg(z.src);
+      if(rec && rec.ready){
+        g.save();
+        roundRect(g,0,0,w,h,r); g.clip();
+        const f = FILTERS[z.filter||"none"];
+        if(f){ try{ g.filter = f; }catch(e){} }
+        const q = imgRect(z,w,h,rec);
+        g.drawImage(rec.im, q.dx, q.dy, q.dw, q.dh);
+        g.restore();
+      }
+    }
+
+    if(z.type==="text" && String(z.text||"").trim()!==""){
+      const fs = u(z.size), pad = u(z.pad||0);
+      g.font = (z.italic?"italic ":"") + (z.weight||400) + " " + fs + "px " + z.font;
+      g.fillStyle = z.color || "#000";
+      g.textBaseline = "alphabetic";
+      const lines = wrapLines(g, z.text, Math.max(1, w-2*pad));
+      const lh = fs*(z.lh||1.4);
+      const half = (lh - fs)/2;          /* half-leading, as a text box does it */
+      const total = lines.length*lh;
+      let ty = pad;
+      if(z.valign==="middle") ty = Math.max(pad,(h-total)/2);
+      else if(z.valign==="bottom") ty = Math.max(pad, h-pad-total);
+      g.save();
+      roundRect(g,0,0,w,h,0); g.clip();
+      lines.forEach((ln,i)=>{
+        let tx = pad;
+        const lw = g.measureText(ln).width;
+        if(z.align==="center") tx = (w-lw)/2;
+        else if(z.align==="right") tx = w-pad-lw;
+        g.fillText(ln, tx, ty + i*lh + half + fs*0.80);
+      });
+      g.restore();
+    }
+
+    if(z.border>0){
+      g.strokeStyle = z.bcolor || "#000";
+      g.lineWidth = u(z.border);
+      roundRect(g, u(z.border)/2, u(z.border)/2, w-u(z.border), h-u(z.border), r);
+      g.stroke();
+    }
+    g.restore();
+  }
+  return c;
+}
+
+/* ============================================================
+   DOM render of the live page
+   ============================================================ */
+let editingId = null;
+function render(){
+  computePPI();
+  const sz = size();
+  const W = sz.w*PPI, H = sz.h*PPI;
+  pageEl.style.width = W+"px";
+  pageEl.style.height = H+"px";
+  pageEl.style.background = page().bg || "#fff";
+  pageEl.innerHTML = "";
+
+  for(const z of page().zones){
+    const d = document.createElement("div");
+    d.className = "zone" + (z.id===sel ? " selzone":"");
+    d.dataset.id = z.id;
+    const w = z.w*W, h = z.h*H;
+    Object.assign(d.style,{
+      left:(z.x*W)+"px", top:(z.y*H)+"px", width:w+"px", height:h+"px",
+      transform: z.rot?("rotate("+z.rot+"deg)"):"",
+      background: z.bg || "transparent",
+      borderRadius: pt(z.radius||0)+"px",
+      boxShadow: z.shadow ? ("0 "+pt(3)+"px "+pt(7)+"px rgba(0,0,0,.33)") : ""
+    });
+
+    if(z.type==="image"){
+      if(z.src){
+        const wrap = document.createElement("div");
+        wrap.className = "imgwrap";
+        wrap.style.borderRadius = pt(z.radius||0)+"px";
+        const rec = getImg(z.src);
+        const im = document.createElement("img");
+        im.src = z.src;
+        im.draggable = false;
+        if(rec && rec.ready){
+          const q = imgRect(z,w,h,rec);
+          Object.assign(im.style,{left:q.dx+"px",top:q.dy+"px",width:q.dw+"px",height:q.dh+"px"});
+        }
+        const f = FILTERS[z.filter||"none"];
+        if(f) im.style.filter = f;
+        wrap.appendChild(im); d.appendChild(wrap);
+      } else {
+        const ph = document.createElement("div");
+        ph.className = "ph";
+        ph.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">'
+          + '<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.8"/>'
+          + '<path d="M3 17l5-4 3.5 3L15 12l6 5"/></svg>';
+        const add = document.createElement("button");
+        add.className = "add";
+        add.textContent = "Add photo";
+        add.addEventListener("pointerdown", e=>e.stopPropagation());
+        add.addEventListener("click", e=>{ e.stopPropagation(); sel=z.id; pickFilesFor(z); });
+        ph.appendChild(add);
+        d.appendChild(ph);
+      }
+    } else {
+      const ta = document.createElement("textarea");
+      ta.value = z.text || "";
+      ta.spellcheck = true;
+      ta.placeholder = "Write here…";
+      Object.assign(ta.style,{
+        fontFamily: z.font,
+        fontSize: pt(z.size)+"px",
+        fontWeight: z.weight,
+        fontStyle: z.italic ? "italic":"normal",
+        lineHeight: z.lh,
+        color: z.color,
+        textAlign: z.align,
+        padding: pt(z.pad||0)+"px",
+        borderRadius: pt(z.radius||0)+"px"
+      });
+      ta.addEventListener("input", ()=>{
+        z.text = ta.value;
+        if(z.valign && z.valign!=="top") applyVAlign();
+        queueThumbs(); markDirty();
+      });
+      ta.addEventListener("focus", ()=>{ editingId = z.id; sel = z.id; drawSel(); buildInsp(); });
+      ta.addEventListener("blur", ()=>{ if(editingId===z.id) editingId=null; });
+      ta.addEventListener("pointerdown", e=>{ sel=z.id; drawSel(); buildInsp(); e.stopPropagation(); });
+      d.appendChild(ta);
+      if(z.id===editingId) setTimeout(()=>{ ta.focus(); },0);
+    }
+    if(z.border>0){
+      /* painted over the content, exactly as the canvas renderer strokes it */
+      const b = document.createElement("div");
+      Object.assign(b.style,{
+        position:"absolute", inset:"0", pointerEvents:"none", boxSizing:"border-box",
+        border: pt(z.border)+"px solid "+(z.bcolor||"#000"),
+        borderRadius: pt(z.radius||0)+"px"
+      });
+      d.appendChild(b);
+    }
+    pageEl.appendChild(d);
+  }
+  applyVAlign();
+  drawSel();
+}
+
+/* A textarea has no vertical alignment, so pad the top to match the exporter. */
+function applyVAlign(){
+  const H = pageEl.clientHeight;
+  for(const z of page().zones){
+    if(z.type!=="text" || z.valign==="top" || !z.valign) continue;
+    const d = pageEl.querySelector('.zone[data-id="'+z.id+'"]');
+    const ta = d && d.querySelector("textarea");
+    if(!ta) continue;
+    const pad = pt(z.pad||0), h = z.h*H;
+    ta.style.paddingTop = pad+"px";
+    /* collapse first: a full-height textarea reports its own height, not the text's */
+    ta.style.height = "0px";
+    const content = ta.scrollHeight - 2*pad;
+    ta.style.height = "";
+    const slack = Math.max(0, h - 2*pad - content);
+    ta.style.paddingTop = (pad + (z.valign==="middle" ? slack/2 : slack)) + "px";
+  }
+}
+
+function drawSel(){
+  pageEl.querySelectorAll(".selbox").forEach(n=>n.remove());
+  pageEl.querySelectorAll(".zone").forEach(n=>n.classList.toggle("selzone", n.dataset.id===sel));
+  if(typeof syncFab==="function") syncFab();
+  const z = selZone(); if(!z) return;
+  const W = pageEl.clientWidth, H = pageEl.clientHeight;
+  const box = document.createElement("div");
+  box.className = "selbox";
+  Object.assign(box.style,{
+    left:(z.x*W)+"px", top:(z.y*H)+"px", width:(z.w*W)+"px", height:(z.h*H)+"px",
+    transform: z.rot?("rotate("+z.rot+"deg)"):""
+  });
+  box.innerHTML = '<div class="edge"></div>'
+    + '<div class="movebar" data-act="move">'
+    + '<span>'+(z.type==="image"?"image":"text")+'</span>'
+    + '<span class="rot" data-act="rot" title="Drag to rotate">↻ '+Math.round(z.rot||0)+'°</span>'
+    + '</div>'
+    + ["nw","ne","sw","se","n","s","w","e"].map(k=>'<div class="h '+k+'" data-h="'+k+'"></div>').join("");
+  pageEl.appendChild(box);
+}
+
+/* ============================================================
+   Pointer interactions
+   ============================================================ */
+let drag = null;
+const pts = new Map();          /* live pointers, for pinch */
+
+function pinchDist(){
+  const a = [...pts.values()];
+  if(a.length<2) return 0;
+  return Math.hypot(a[0].x-a[1].x, a[0].y-a[1].y);
+}
+
+pageEl.addEventListener("pointerdown", e=>{
+  pts.set(e.pointerId, {x:e.clientX, y:e.clientY});
+  /* a second finger on an image starts a pinch instead of restarting the drag */
+  if(pts.size>1){
+    if(drag && drag.mode==="pan"){
+      drag.pinch = { d0: pinchDist(), s0: drag.z.scale||1 };
+      e.preventDefault();
+    }
+    return;
+  }
+  const hEl = e.target.closest("[data-h]");
+  const act = e.target.closest("[data-act]");
+  const zEl = e.target.closest(".zone");
+  const W = pageEl.clientWidth, H = pageEl.clientHeight;
+
+  if(hEl || act){
+    const z = selZone(); if(!z) return;
+    e.preventDefault();
+    pageEl.setPointerCapture(e.pointerId);
+    drag = { mode: hEl ? "resize" : act.dataset.act, k: hEl && hEl.dataset.h,
+             z, sx:e.clientX, sy:e.clientY, o:{x:z.x,y:z.y,w:z.w,h:z.h,rot:z.rot||0} };
+    return;
+  }
+  if(zEl){
+    const z = page().zones.find(v=>v.id===zEl.dataset.id);
+    if(!z) return;
+    if(sel !== z.id){ sel = z.id; editingId=null; drawSel(); buildInsp(); }
+    if(z.type==="image" && z.src){
+      e.preventDefault();
+      pageEl.setPointerCapture(e.pointerId);
+      drag = { mode:"pan", z, sx:e.clientX, sy:e.clientY, o:{ox:z.ox||0, oy:z.oy||0},
+               zw:z.w*W, zh:z.h*H };
+    }
+    return;
+  }
+  sel = null; editingId = null; drawSel(); buildInsp();
+});
+
+pageEl.addEventListener("pointermove", e=>{
+  if(pts.has(e.pointerId)) pts.set(e.pointerId, {x:e.clientX, y:e.clientY});
+  if(!drag) return;
+  const W = pageEl.clientWidth, H = pageEl.clientHeight;
+  const z = drag.z, o = drag.o;
+  let dx = (e.clientX - drag.sx), dy = (e.clientY - drag.sy);
+
+  if(drag.pinch && pts.size>1){
+    const d = pinchDist();
+    if(drag.pinch.d0 > 8 && d > 8){
+      z.scale = Math.max(0.2, Math.min(6, drag.pinch.s0 * d/drag.pinch.d0));
+      render(); markDirty();
+    }
+    return;
+  }
+
+  if(drag.mode==="pan"){
+    z.ox = o.ox + dx/drag.zw;
+    z.oy = o.oy + dy/drag.zh;
+  } else if(drag.mode==="move"){
+    const snap = e.altKey ? 1 : 200;   /* 0.005 grid unless Alt */
+    z.x = Math.round((o.x + dx/W)*snap)/snap;
+    z.y = Math.round((o.y + dy/H)*snap)/snap;
+  } else if(drag.mode==="rot"){
+    let r = o.rot + dx*0.35;
+    if(!e.altKey) r = Math.round(r);
+    if(Math.abs(r) < 1.2) r = 0;
+    z.rot = Math.max(-180, Math.min(180, r));
+  } else if(drag.mode==="resize"){
+    /* rotate the pointer delta into the zone's own axes */
+    const a = -(z.rot||0)*Math.PI/180;
+    const rx = dx*Math.cos(a) - dy*Math.sin(a);
+    const ry = dx*Math.sin(a) + dy*Math.cos(a);
+    const fx = rx/W, fy = ry/H;
+    const k = drag.k, MIN = 0.03;
+    let nx=o.x, ny=o.y, nw=o.w, nh=o.h;
+    if(k.includes("w")){ nx = o.x+fx; nw = o.w-fx; }
+    if(k.includes("e")){ nw = o.w+fx; }
+    if(k.includes("n")){ ny = o.y+fy; nh = o.h-fy; }
+    if(k.includes("s")){ nh = o.h+fy; }
+    if(nw<MIN){ if(k.includes("w")) nx = o.x+o.w-MIN; nw=MIN; }
+    if(nh<MIN){ if(k.includes("n")) ny = o.y+o.h-MIN; nh=MIN; }
+    z.x=nx; z.y=ny; z.w=nw; z.h=nh;
+  }
+  render(); markDirty();
+});
+
+function endDrag(e){
+  pts.delete(e.pointerId);
+  if(!drag) return;
+  if(drag.pinch && pts.size<2){
+    /* lifting one finger ends the pinch but keeps the remaining drag sane */
+    drag.pinch = null;
+    const left = [...pts.values()][0];
+    if(left){ drag.sx = left.x; drag.sy = left.y; drag.o = {ox:drag.z.ox||0, oy:drag.z.oy||0}; return; }
+  }
+  if(pts.size>0) return;
+  drag = null;
+  try{ pageEl.releasePointerCapture(e.pointerId); }catch(err){}
+  queueThumbs(); buildInsp();
+}
+pageEl.addEventListener("pointerup", endDrag);
+pageEl.addEventListener("pointercancel", endDrag);
+
+pageEl.addEventListener("wheel", e=>{
+  const zEl = e.target.closest(".zone"); if(!zEl) return;
+  const z = page().zones.find(v=>v.id===zEl.dataset.id);
+  if(!z || z.type!=="image" || !z.src) return;
+  e.preventDefault();
+  z.scale = Math.max(0.2, Math.min(6, (z.scale||1) * (e.deltaY>0 ? 0.94 : 1.064)));
+  render(); queueThumbs(); markDirty(); buildInsp();
+}, {passive:false});
+
+pageEl.addEventListener("dblclick", e=>{
+  const zEl = e.target.closest(".zone"); if(!zEl) return;
+  const z = page().zones.find(v=>v.id===zEl.dataset.id);
+  if(z && z.type==="image"){ sel=z.id; pickFilesFor(z); }
+});
+
+/* ---------- drag & drop from the file system ---------- */
+["dragenter","dragover"].forEach(ev=>pageEl.addEventListener(ev, e=>{
+  e.preventDefault(); pageEl.classList.add("drop");
+}));
+["dragleave","drop"].forEach(ev=>pageEl.addEventListener(ev, e=>{
+  if(ev==="dragleave" && e.relatedTarget && pageEl.contains(e.relatedTarget)) return;
+  pageEl.classList.remove("drop");
+}));
+pageEl.addEventListener("drop", async e=>{
+  e.preventDefault();
+  const files = [...(e.dataTransfer.files||[])].filter(f=>/^image\//.test(f.type));
+  if(!files.length) return;
+  const zEl = e.target.closest(".zone");
+  const target = zEl ? page().zones.find(v=>v.id===zEl.dataset.id) : null;
+  const rect = pageEl.getBoundingClientRect();
+  await placeFiles(files, target && target.type==="image" ? target : null,
+                  (e.clientX-rect.left)/rect.width, (e.clientY-rect.top)/rect.height);
+});
+
+async function placeFiles(files, firstTarget, px, py){
+  toast("Loading " + files.length + " image" + (files.length>1?"s":"") + "…");
+  const queue = [];
+  if(firstTarget) queue.push(firstTarget);
+  for(const z of page().zones) if(z.type==="image" && !z.src && z!==firstTarget) queue.push(z);
+
+  let made = 0;
+  for(let i=0;i<files.length;i++){
+    let z = queue[i];
+    if(!z){
+      const w=.34,h=.26;
+      const x = Math.max(.02, Math.min(.98-w, (px||.3) + made*0.03));
+      const y = Math.max(.02, Math.min(.98-h, (py||.3) + made*0.03));
+      z = imgZone(x,y,w,h,{shadow:true,border:3,bcolor:"#ffffff"});
+      page().zones.push(z); made++;
+    }
+    try{
+      const r = await fileToZoneSrc(files[i]);
+      z.src = r.src; z.scale=1; z.ox=0; z.oy=0;
+      if(r.alpha){ z.fit="contain"; z.bg=""; }
+      sel = z.id;
+      render();
+    }catch(err){ toast("Couldn't read " + files[i].name); }
+  }
+  queueThumbs(); buildInsp(); markDirty();
+  toast("Placed " + files.length + " image" + (files.length>1?"s":"") + ".");
+}
+
+/* file picker targeted at one zone */
+let pickTarget = null;
+const filePick = document.getElementById("filePick");
+function pickFilesFor(z){ pickTarget = z; filePick.value=""; filePick.click(); }
+filePick.addEventListener("change", async ()=>{
+  const files = [...filePick.files];
+  if(!files.length) return;
+  await placeFiles(files, pickTarget, .3, .3);
+  pickTarget = null;
+});
+
+/* ============================================================
+   Keyboard
+   ============================================================ */
+document.addEventListener("keydown", e=>{
+  const tag = (e.target.tagName||"").toLowerCase();
+  const typing = tag==="textarea" || tag==="input" || tag==="select";
+  if(e.key==="Escape"){
+    if(typing){ e.target.blur(); editingId=null; }
+    else { sel=null; drawSel(); buildInsp(); }
+    return;
+  }
+  if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==="d"){
+    e.preventDefault(); dupZone(); return;
+  }
+  if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==="s"){
+    e.preventDefault(); saveProject(); return;
+  }
+  if(typing) return;
+  if(e.key==="PageDown"){ e.preventDefault(); gotoPage(cur+1); return; }
+  if(e.key==="PageUp"){ e.preventDefault(); gotoPage(cur-1); return; }
+  const z = selZone(); if(!z) return;
+  if(e.key==="Delete" || e.key==="Backspace"){ e.preventDefault(); delZone(); return; }
+  const step = e.shiftKey ? 0.02 : 0.004;
+  let moved = true;
+  if(e.key==="ArrowLeft") z.x -= step;
+  else if(e.key==="ArrowRight") z.x += step;
+  else if(e.key==="ArrowUp") z.y -= step;
+  else if(e.key==="ArrowDown") z.y += step;
+  else moved = false;
+  if(moved){ e.preventDefault(); render(); queueThumbs(); markDirty(); }
+});
+
+/* ============================================================
+   Inspector
+   ============================================================ */
+function h(html){ const d=document.createElement("div"); d.innerHTML=html.trim(); return d.firstChild; }
+
+function buildInsp(){
+  const z = selZone();
+  inspEl.innerHTML = "";
+  if(!z){
+    inspEl.appendChild(h('<div><h3>Page</h3><div class="hint">Nothing selected. Pick a zone to edit it, or use <b>Add photos</b> to fill the empty ones.</div></div>'));
+    const p = page();
+    inspEl.appendChild(h('<label class="fld">Page name</label>'));
+    const nm = h('<input type="text" style="width:100%">'); nm.value = p.name||"";
+    nm.oninput = ()=>{ p.name = nm.value; drawList(); markDirty(); };
+    inspEl.appendChild(nm);
+    inspEl.appendChild(h('<label class="fld">Page background</label>'));
+    const bgRow = h('<div class="row"></div>');
+    const bg = h('<input type="color">'); bg.value = p.bg || "#ffffff";
+    bg.oninput = ()=>{ p.bg = bg.value; render(); queueThumbs(); markDirty(); };
+    bgRow.appendChild(bg);
+    ["#ffffff","#faf6ef","#f3efe6","#eae4d8","#2b2b2b"].forEach(c=>{
+      const b = h('<button class="sm" style="background:'+c+';width:24px;height:24px;padding:0"></button>');
+      b.onclick = ()=>{ p.bg=c; bg.value=c; render(); queueThumbs(); markDirty(); };
+      bgRow.appendChild(b);
+    });
+    inspEl.appendChild(bgRow);
+    inspEl.appendChild(h('<hr>'));
+    inspEl.appendChild(h('<label class="fld">Project title</label>'));
+    const ti = h('<input type="text" style="width:100%">'); ti.value = project.title||"";
+    ti.oninput = ()=>{ project.title = ti.value; markDirty(); };
+    inspEl.appendChild(ti);
+    return;
+  }
+
+  inspEl.appendChild(h('<h3>'+(z.type==="image"?"Image zone":"Text zone")+'</h3>'));
+
+  if(z.type==="image"){
+    const r1 = h('<div class="row"></div>');
+    const bPick = h('<button class="pri">Choose file…</button>');
+    bPick.onclick = ()=>pickFilesFor(z);
+    r1.appendChild(bPick);
+    if(z.src){
+      const bClr = h('<button>Remove</button>');
+      bClr.onclick = ()=>{ z.src=null; z.scale=1; z.ox=0; z.oy=0; render(); queueThumbs(); markDirty(); buildInsp(); };
+      r1.appendChild(bClr);
+    }
+    inspEl.appendChild(r1);
+
+    inspEl.appendChild(h('<label class="fld">Fit</label>'));
+    const fitRow = h('<div class="row tight"></div>');
+    [["cover","Fill (crop)"],["contain","Whole image"]].forEach(([v,lab])=>{
+      const b = h('<button class="sm'+(z.fit===v?" on":"")+'">'+lab+'</button>');
+      b.onclick = ()=>{ z.fit=v; z.ox=0; z.oy=0; render(); queueThumbs(); markDirty(); buildInsp(); };
+      fitRow.appendChild(b);
+    });
+    inspEl.appendChild(fitRow);
+
+    inspEl.appendChild(h('<label class="fld">Zoom — '+Math.round((z.scale||1)*100)+'%</label>'));
+    const zr = h('<input type="range" min="20" max="400" step="1">');
+    zr.value = Math.round((z.scale||1)*100);
+    zr.oninput = ()=>{ z.scale = parseInt(zr.value,10)/100; render(); markDirty(); };
+    zr.onchange = ()=>{ queueThumbs(); buildInsp(); };
+    inspEl.appendChild(zr);
+    const bRe = h('<button class="sm">Re-centre</button>');
+    bRe.onclick = ()=>{ z.ox=0; z.oy=0; z.scale=1; render(); queueThumbs(); markDirty(); buildInsp(); };
+    inspEl.appendChild(bRe);
+
+    inspEl.appendChild(h('<label class="fld">Tone</label>'));
+    const fRow = h('<div class="row tight"></div>');
+    [["none","None"],["bw","B&W"],["sepia","Sepia"],["warm","Warm"],["cool","Cool"],["fade","Faded"]].forEach(([v,lab])=>{
+      const b = h('<button class="sm'+((z.filter||"none")===v?" on":"")+'">'+lab+'</button>');
+      b.onclick = ()=>{ z.filter=v; render(); queueThumbs(); markDirty(); buildInsp(); };
+      fRow.appendChild(b);
+    });
+    inspEl.appendChild(fRow);
+  } else {
+    inspEl.appendChild(h('<label class="fld">Font</label>'));
+    const fs = h('<select style="width:100%"></select>');
+    FONTS.forEach(([v,lab])=>{
+      const o = document.createElement("option"); o.value=v; o.textContent=lab;
+      o.style.fontFamily=v; if(z.font===v) o.selected=true; fs.appendChild(o);
+    });
+    fs.onchange = ()=>{ z.font=fs.value; render(); queueThumbs(); markDirty(); };
+    inspEl.appendChild(fs);
+
+    inspEl.appendChild(h('<label class="fld">Size (pt) / line height</label>'));
+    const sr = h('<div class="row tight"></div>');
+    const si = h('<input type="number" class="num" min="5" max="200" step="0.5">'); si.value = z.size;
+    si.oninput = ()=>{ z.size = Math.max(5, parseFloat(si.value)||12); render(); queueThumbs(); markDirty(); };
+    const li = h('<input type="number" class="num" min="0.9" max="3" step="0.05">'); li.value = z.lh;
+    li.oninput = ()=>{ z.lh = Math.max(0.9, parseFloat(li.value)||1.4); render(); queueThumbs(); markDirty(); };
+    sr.appendChild(si); sr.appendChild(li);
+    inspEl.appendChild(sr);
+
+    inspEl.appendChild(h('<label class="fld">Style</label>'));
+    const st = h('<div class="row tight"></div>');
+    const bB = h('<button class="sm'+(z.weight>=600?" on":"")+'" style="font-weight:700">B</button>');
+    bB.onclick = ()=>{ z.weight = z.weight>=600?400:700; render(); queueThumbs(); markDirty(); buildInsp(); };
+    const bI = h('<button class="sm'+(z.italic?" on":"")+'" style="font-style:italic">I</button>');
+    bI.onclick = ()=>{ z.italic=!z.italic; render(); queueThumbs(); markDirty(); buildInsp(); };
+    st.appendChild(bB); st.appendChild(bI);
+    [["left","⟸"],["center","≡"],["right","⟹"]].forEach(([v,lab])=>{
+      const b = h('<button class="sm'+(z.align===v?" on":"")+'">'+lab+'</button>');
+      b.onclick = ()=>{ z.align=v; render(); queueThumbs(); markDirty(); buildInsp(); };
+      st.appendChild(b);
+    });
+    inspEl.appendChild(st);
+
+    inspEl.appendChild(h('<label class="fld">Vertical</label>'));
+    const vr = h('<div class="row tight"></div>');
+    [["top","Top"],["middle","Middle"],["bottom","Bottom"]].forEach(([v,lab])=>{
+      const b = h('<button class="sm'+(z.valign===v?" on":"")+'">'+lab+'</button>');
+      b.onclick = ()=>{ z.valign=v; render(); queueThumbs(); markDirty(); buildInsp(); };
+      vr.appendChild(b);
+    });
+    inspEl.appendChild(vr);
+
+    inspEl.appendChild(h('<label class="fld">Text colour / padding (pt)</label>'));
+    const cr = h('<div class="row tight"></div>');
+    const col = h('<input type="color">'); col.value = z.color;
+    col.oninput = ()=>{ z.color=col.value; render(); queueThumbs(); markDirty(); };
+    const pd = h('<input type="number" class="num" min="0" max="72" step="1">'); pd.value = z.pad;
+    pd.oninput = ()=>{ z.pad = Math.max(0, parseFloat(pd.value)||0); render(); queueThumbs(); markDirty(); };
+    cr.appendChild(col); cr.appendChild(pd);
+    inspEl.appendChild(cr);
+  }
+
+  inspEl.appendChild(h('<hr>'));
+  inspEl.appendChild(h('<label class="fld">Frame</label>'));
+  const fr = h('<div class="row tight"></div>');
+  const bw = h('<input type="number" class="num" min="0" max="40" step="0.5" title="Border width (pt)">');
+  bw.value = z.border||0;
+  bw.oninput = ()=>{ z.border = Math.max(0, parseFloat(bw.value)||0); render(); queueThumbs(); markDirty(); };
+  const bc = h('<input type="color" title="Border colour">'); bc.value = z.bcolor||"#2b2b2b";
+  bc.oninput = ()=>{ z.bcolor=bc.value; render(); queueThumbs(); markDirty(); };
+  const rad = h('<input type="number" class="num" min="0" max="200" step="1" title="Corner radius (pt)">');
+  rad.value = z.radius||0;
+  rad.oninput = ()=>{ z.radius = Math.max(0, parseFloat(rad.value)||0); render(); queueThumbs(); markDirty(); };
+  fr.appendChild(bw); fr.appendChild(bc); fr.appendChild(rad);
+  inspEl.appendChild(fr);
+
+  const shRow = h('<div class="row" style="margin-top:8px"></div>');
+  const sh = h('<button class="sm'+(z.shadow?" on":"")+'">Drop shadow</button>');
+  sh.onclick = ()=>{ z.shadow=!z.shadow; render(); queueThumbs(); markDirty(); buildInsp(); };
+  const wh = h('<button class="sm">White polaroid</button>');
+  wh.onclick = ()=>{ z.border=8; z.bcolor="#ffffff"; z.shadow=true; z.bg = z.bg||"#ffffff";
+                     render(); queueThumbs(); markDirty(); buildInsp(); };
+  shRow.appendChild(sh); shRow.appendChild(wh);
+  inspEl.appendChild(shRow);
+
+  inspEl.appendChild(h('<label class="fld">Rotation — '+Math.round(z.rot||0)+'°</label>'));
+  const rr = h('<input type="range" min="-45" max="45" step="0.5">');
+  rr.value = z.rot||0;
+  rr.oninput = ()=>{ z.rot=parseFloat(rr.value); render(); markDirty(); };
+  rr.onchange = ()=>{ queueThumbs(); buildInsp(); };
+  inspEl.appendChild(rr);
+
+  inspEl.appendChild(h('<hr>'));
+  const ord = h('<div class="row tight"></div>');
+  const bFwd = h('<button class="sm">Bring forward</button>');
+  bFwd.onclick = ()=>moveZ(1);
+  const bBack = h('<button class="sm">Send back</button>');
+  bBack.onclick = ()=>moveZ(-1);
+  ord.appendChild(bFwd); ord.appendChild(bBack);
+  inspEl.appendChild(ord);
+  const act = h('<div class="row tight" style="margin-top:8px"></div>');
+  const bDup = h('<button class="sm">Duplicate</button>'); bDup.onclick = dupZone;
+  const bDel = h('<button class="sm">Delete</button>'); bDel.onclick = delZone;
+  act.appendChild(bDup); act.appendChild(bDel);
+  inspEl.appendChild(act);
+}
+
+function moveZ(dir){
+  const zs = page().zones, i = zs.findIndex(v=>v.id===sel);
+  if(i<0) return;
+  const j = i+dir;
+  if(j<0 || j>=zs.length) return;
+  [zs[i],zs[j]] = [zs[j],zs[i]];
+  render(); queueThumbs(); markDirty();
+}
+function dupZone(){
+  const z = selZone(); if(!z) return;
+  const c = JSON.parse(JSON.stringify(z));
+  c.id = nid(); c.x = Math.min(.95, z.x+.02); c.y = Math.min(.95, z.y+.02);
+  page().zones.push(c); sel = c.id;
+  render(); queueThumbs(); buildInsp(); markDirty();
+}
+function delZone(){
+  const zs = page().zones, i = zs.findIndex(v=>v.id===sel);
+  if(i<0) return;
+  zs.splice(i,1); sel=null; editingId=null;
+  render(); queueThumbs(); buildInsp(); markDirty();
+}
+
+/* ============================================================
+   Page list
+   ============================================================ */
+let thumbTimer = null;
+function queueThumbs(){
+  clearTimeout(thumbTimer);
+  thumbTimer = setTimeout(drawList, 280);
+}
+function drawList(){
+  listEl.innerHTML = "";
+  project.pages.forEach((p,i)=>{
+    const d = document.createElement("div");
+    d.className = "pthumb" + (i===cur?" sel":"");
+    const c = renderToCanvas(p, Math.min(26, 170/size().w));
+    d.appendChild(c);
+    const n = document.createElement("div");
+    n.className = "n";
+    n.innerHTML = "<b>"+escapeHtml(p.name||"Page")+"</b><span>"+(i+1)+"</span>";
+    d.appendChild(n);
+    d.onclick = ()=>gotoPage(i);
+    listEl.appendChild(d);
+  });
+}
+function escapeHtml(s){ return String(s).replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+function gotoPage(i){
+  if(i<0 || i>=project.pages.length) return;
+  cur = i; sel = null; editingId = null;
+  render(); drawList(); buildInsp();
+  if(typeof closeDrawers==="function" && window.innerWidth<=920) closeDrawers();
+}
+
+document.getElementById("btnPageAdd").onclick = ()=>{
+  project.pages.splice(cur+1, 0, newPage(0));
+  gotoPage(cur+1); markDirty();
+};
+document.getElementById("btnPageDup").onclick = ()=>{
+  const c = JSON.parse(JSON.stringify(page()));
+  c.id = nid(); c.zones.forEach(z=>z.id=nid());
+  project.pages.splice(cur+1,0,c);
+  gotoPage(cur+1); markDirty();
+};
+document.getElementById("btnPageDel").onclick = ()=>{
+  if(project.pages.length===1){ toast("A project needs at least one page."); return; }
+  project.pages.splice(cur,1);
+  gotoPage(Math.min(cur, project.pages.length-1)); markDirty();
+};
+document.getElementById("btnPageUp").onclick = ()=>{
+  if(cur===0) return;
+  [project.pages[cur-1],project.pages[cur]] = [project.pages[cur],project.pages[cur-1]];
+  gotoPage(cur-1); markDirty();
+};
+document.getElementById("btnPageDown").onclick = ()=>{
+  if(cur===project.pages.length-1) return;
+  [project.pages[cur+1],project.pages[cur]] = [project.pages[cur],project.pages[cur+1]];
+  gotoPage(cur+1); markDirty();
+};
+
+/* ============================================================
+   Templates modal
+   ============================================================ */
+/* ---------- template library: built-in plus the user's own ---------- */
+const TPL_KEY = "scrapbook-templates";
+let userTemplates = [];
+
+function loadUserTemplates(){
+  try{
+    const raw = localStorage.getItem(TPL_KEY);
+    const v = raw ? JSON.parse(raw) : [];
+    userTemplates = Array.isArray(v) ? v : [];
+  }catch(e){ userTemplates = []; }
+}
+function storeUserTemplates(){
+  try{ localStorage.setItem(TPL_KEY, JSON.stringify(userTemplates)); }
+  catch(e){ toast("This browser wouldn't store the template library."); }
+}
+/* templates travel inside project files too, so opening a project on another
+   machine brings its templates with it */
+function mergeTemplates(list){
+  if(!Array.isArray(list)) return 0;
+  let added = 0;
+  for(const t of list){
+    if(!t || !t.id || !Array.isArray(t.zones)) continue;
+    if(userTemplates.some(u=>u.id===t.id)) continue;
+    userTemplates.push(t); added++;
+  }
+  if(added) storeUserTemplates();
+  return added;
+}
+/* keep the design, drop the content */
+function pageAsTemplate(name){
+  const zones = page().zones.map(z=>{
+    const c = JSON.parse(JSON.stringify(z));
+    c.id = nid();
+    if(c.type==="image"){ c.src = null; c.scale = 1; c.ox = 0; c.oy = 0; }
+    else c.text = "";
+    return c;
+  });
+  return {
+    id: "t" + Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+    name: (name||"").trim() || "My template",
+    zones
+  };
+}
+
+function tplPreview(zs){
+  const sz = size();
+  const W = 150, H = Math.round(150*sz.h/sz.w);
+  const parts = zs.map(z=>{
+    const x=(z.x*W).toFixed(1), y=(z.y*H).toFixed(1), w=(z.w*W).toFixed(1), hh=(z.h*H).toFixed(1);
+    let body;
+    if(z.type==="image"){
+      body = '<rect x="'+x+'" y="'+y+'" width="'+w+'" height="'+hh+'" fill="#d8d4cc"'
+           + (z.border>0 ? ' stroke="#fff" stroke-width="1.5"' : '') + '/>';
+    } else {
+      const lines=[];
+      const n = Math.max(1, Math.floor(z.h*H/5));
+      for(let i=0;i<Math.min(n,9);i++)
+        lines.push('<rect x="'+x+'" y="'+(parseFloat(y)+2+i*5).toFixed(1)+'" width="'+(parseFloat(w)*(i%3===2?.6:.95)).toFixed(1)+'" height="1.6" fill="#b9b3a8"/>');
+      body = lines.join("");
+    }
+    if(z.rot){
+      const cx = (z.x*W + z.w*W/2).toFixed(1), cy = (z.y*H + z.h*H/2).toFixed(1);
+      return '<g transform="rotate('+z.rot+' '+cx+' '+cy+')">'+body+'</g>';
+    }
+    return body;
+  }).join("");
+  return '<svg viewBox="0 0 '+W+' '+H+'" width="'+W+'" height="'+H+'">'
+    + '<rect width="'+W+'" height="'+H+'" fill="#fff"/>' + parts + '</svg>';
+}
+function openTemplates(){
+  const g = document.getElementById("tGrid");
+  g.innerHTML = "";
+  TEMPLATES.forEach(t=>{
+    const zs = t.build();
+    const c = h('<button class="tcard">'+tplPreview(zs)+'<div class="nm">'+escapeHtml(t.name)+'</div></button>');
+    c.onclick = ()=>applyZones(t.build());
+    g.appendChild(c);
+  });
+
+  const mine = document.getElementById("tGridMine");
+  const wrap = document.getElementById("tMineWrap");
+  mine.innerHTML = "";
+  wrap.style.display = userTemplates.length ? "" : "none";
+  userTemplates.forEach(t=>{
+    const c = h('<div class="tcard">'+tplPreview(t.zones)
+              + '<div class="nm">'+escapeHtml(t.name)+'</div>'
+              + '<div class="del" title="Delete this template">×</div></div>');
+    c.onclick = ()=>applyZones(JSON.parse(JSON.stringify(t.zones)).map(z=>(z.id=nid(),z)));
+    c.querySelector(".del").onclick = e=>{
+      e.stopPropagation();
+      userTemplates = userTemplates.filter(u=>u.id!==t.id);
+      storeUserTemplates();
+      openTemplates();
+      toast("Template deleted.");
+    };
+    mine.appendChild(c);
+  });
+
+  document.getElementById("mTemplate").classList.add("open");
+}
+
+document.getElementById("btnSaveTpl").onclick = ()=>{
+  if(!page().zones.length){ toast("This page has no zones to save yet."); return; }
+  closeModal();
+  const inp = document.getElementById("tplName");
+  inp.value = page().name && page().name!=="Page" ? page().name : "";
+  document.getElementById("mSaveTpl").classList.add("open");
+  setTimeout(()=>inp.focus(), 60);
+};
+document.getElementById("tplSaveGo").onclick = ()=>{
+  const t = pageAsTemplate(document.getElementById("tplName").value);
+  userTemplates.push(t);
+  storeUserTemplates();
+  closeModal();
+  const n = t.zones.filter(z=>z.type==="image").length;
+  toast('Saved "'+t.name+'" — '+n+' photo zone'+(n===1?"":"s")+'.');
+};
+document.getElementById("tplName").addEventListener("keydown", e=>{
+  if(e.key==="Enter"){ e.preventDefault(); document.getElementById("tplSaveGo").click(); }
+});
+
+/* templates out to a file and back, so a browser cleanup can't take them */
+document.getElementById("btnTplExport").onclick = async ()=>{
+  if(!userTemplates.length){ toast("You haven't saved any templates yet."); return; }
+  const blob = new Blob([JSON.stringify({templates:userTemplates})], {type:"application/json"});
+  await saveBlob("scrapbook-press-templates.json", blob);
+  toast("Backed up " + userTemplates.length + " template" + (userTemplates.length===1?"":"s") + ".");
+};
+const tplPick = document.getElementById("tplPick");
+document.getElementById("btnTplImport").onclick = ()=>{ tplPick.value=""; tplPick.click(); };
+tplPick.addEventListener("change", ()=>{
+  const f = tplPick.files[0]; if(!f) return;
+  const fr = new FileReader();
+  fr.onload = ()=>{
+    try{
+      const p = JSON.parse(fr.result);
+      const list = Array.isArray(p) ? p : p.templates;
+      const n = mergeTemplates(list);
+      openTemplates();
+      toast(n ? ("Restored " + n + " template" + (n===1?"":"s") + ".")
+              : "Nothing new in that file — those templates are already here.");
+    }catch(e){ toast("That file isn't a template backup."); }
+  };
+  fr.readAsText(f);
+});
+
+function applyZones(zs){
+  const old = page().zones.filter(z=>z.type==="image" && z.src);
+  const oldText = page().zones.filter(z=>z.type==="text" && String(z.text||"").trim()!=="");
+  let ii=0, ti=0;
+  for(const z of zs){
+    if(z.type==="image" && ii<old.length){
+      const o = old[ii++];
+      z.src=o.src; z.filter=o.filter; z.fit=o.fit; z.scale=o.scale; z.ox=o.ox; z.oy=o.oy;
+    } else if(z.type==="text" && ti<oldText.length){
+      z.text = oldText[ti++].text;
+    }
+  }
+  page().zones = zs;
+  sel=null; editingId=null;
+  closeModal(); render(); drawList(); buildInsp(); markDirty();
+  if(old.length>ii) toast((old.length-ii)+" photo(s) didn't fit this template and were dropped.");
+}
+function closeModal(){ document.querySelectorAll(".modal").forEach(m=>m.classList.remove("open")); }
+document.querySelectorAll(".modal").forEach(m=>m.addEventListener("click", e=>{ if(e.target===m) closeModal(); }));
+
+/* ---------- drawers (small screens) ---------- */
+const scrim = document.getElementById("scrim");
+const fab = document.getElementById("fab");
+function setDrawer(el, open){
+  el.classList.toggle("open", open);
+  const any = document.getElementById("pagesPane").classList.contains("open")
+           || inspEl.classList.contains("open");
+  scrim.classList.toggle("on", any);
+}
+function closeDrawers(){
+  document.getElementById("pagesPane").classList.remove("open");
+  inspEl.classList.remove("open");
+  scrim.classList.remove("on");
+}
+document.getElementById("btnPagesDrawer").onclick = ()=>{
+  const el = document.getElementById("pagesPane");
+  const willOpen = !el.classList.contains("open");
+  closeDrawers(); setDrawer(el, willOpen);
+};
+fab.onclick = ()=>{ setDrawer(inspEl, !inspEl.classList.contains("open")); };
+scrim.onclick = closeDrawers;
+function syncFab(){ fab.classList.toggle("show", !!sel); }
+
+document.getElementById("btnPhotos").onclick = ()=>pickFilesFor(null);
+document.getElementById("btnTemplate").onclick = openTemplates;
+document.getElementById("btnHelp").onclick = ()=>document.getElementById("mHelp").classList.add("open");
+document.getElementById("btnAddImg").onclick = ()=>{
+  const z = imgZone(.2,.2,.38,.3,{shadow:true,border:4,bcolor:"#ffffff"});
+  page().zones.push(z); sel=z.id; render(); queueThumbs(); buildInsp(); markDirty();
+};
+document.getElementById("btnAddTxt").onclick = ()=>{
+  const z = txtZone(.2,.2,.45,.18);
+  page().zones.push(z); sel=z.id; editingId=z.id; render(); queueThumbs(); buildInsp(); markDirty();
+};
+
+/* size + zoom */
+const selSize = document.getElementById("selSize");
+Object.entries(SIZES).forEach(([k,v])=>{
+  const o=document.createElement("option"); o.value=k; o.textContent=v.label; selSize.appendChild(o);
+});
+selSize.value = project.size;
+selSize.onchange = ()=>{ project.size = selSize.value; render(); drawList(); markDirty(); };
+const selZoomEl = document.getElementById("selZoom");
+selZoomEl.onchange = ()=>{ zoom = selZoomEl.value; render(); };
+window.addEventListener("resize", ()=>{ if(zoom==="fit") render(); });
+
+/* ============================================================
+   Saving: file download + IndexedDB autosave
+   ============================================================ */
+let dlCap = undefined;
+async function downloads(){
+  if(dlCap !== undefined) return dlCap;
+  dlCap = null;
+  try{
+    if(window.claude && typeof window.claude.use === "function")
+      dlCap = await window.claude.use("downloads");
+  }catch(e){ dlCap = null; }
+  return dlCap;
+}
+async function saveBlob(filename, blob){
+  const cap = await downloads();
+  if(cap && cap.save){
+    const tries = [blob];
+    try{ tries.push(new Uint8Array(await blob.arrayBuffer())); }catch(e){}
+    for(const data of tries){
+      try{ await cap.save({filename, data}); return true; }
+      catch(err){ if(/declin|cancel|reject/i.test(String(err && err.message))) return false; }
+    }
+  }
+  try{
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 20000);
+    return true;
+  }catch(e){}
+  toast("This browser blocked the download. Open the local copy of this file to export.");
+  return false;
+}
+
+function safeName(){
+  return (project.title||"scrapbook").replace(/[^\w\- ]+/g,"").trim().replace(/\s+/g,"-") || "scrapbook";
+}
+function projectBlob(){
+  /* carry the template library in the file so it survives a move to another machine */
+  const out = Object.assign({}, project, {templates:userTemplates});
+  return new Blob([JSON.stringify(out)], {type:"application/json"});
+}
+
+/* Real files on disk where the browser supports it (Chrome, Edge),
+   a plain download everywhere else. Either way it never leaves the machine. */
+const FSA = (typeof window.showSaveFilePicker === "function");
+let fileHandle = null, fileDirty = false, autoFileSave = true, savedOnce = false;
+
+/* browser storage is a safety net, not a home: nag until the work is in a file */
+setInterval(()=>{
+  if(fileDirty && !savedOnce)
+    toast("This project isn't in a file yet — use Save as… so clearing your browser can't take it.");
+}, 240000);
+
+function setFileLabel(){
+  const el = document.getElementById("fname");
+  if(!el) return;
+  el.textContent = (fileDirty ? "• " : "") + (fileHandle ? fileHandle.name : "unsaved");
+  el.classList.toggle("unsaved", !fileHandle);
+  el.title = fileHandle ? ("Saving to " + fileHandle.name) : "Not saved to a file yet";
+}
+async function writeHandle(){
+  const w = await fileHandle.createWritable();
+  await w.write(projectBlob());
+  await w.close();
+  fileDirty = false; savedOnce = true; setFileLabel();
+}
+async function saveProject(){
+  if(FSA && fileHandle){
+    try{ await writeHandle(); toast("Saved — " + fileHandle.name); }
+    catch(e){
+      autoFileSave = false;
+      toast("Couldn't write to that file. Use Save as… to pick another.");
+    }
+    return;
+  }
+  return saveAs();
+}
+async function saveAs(){
+  if(FSA){
+    try{
+      fileHandle = await window.showSaveFilePicker({
+        suggestedName: safeName()+".scrapbook.json",
+        types:[{description:"Scrapbook project", accept:{"application/json":[".json"]}}]
+      });
+      autoFileSave = true;
+      await writeHandle();
+      toast("Saved — " + fileHandle.name);
+      return;
+    }catch(e){
+      if(e && e.name==="AbortError") return;
+    }
+  }
+  await saveBlob(safeName()+".scrapbook.json", projectBlob());
+  fileDirty = false; savedOnce = true; setFileLabel();
+  toast("Project saved to your downloads folder.");
+}
+async function openProject(){
+  if(FSA){
+    try{
+      const [hdl] = await window.showOpenFilePicker({
+        types:[{description:"Scrapbook project", accept:{"application/json":[".json"]}}]
+      });
+      const f = await hdl.getFile();
+      const p = JSON.parse(await f.text());
+      if(!p || !Array.isArray(p.pages)) throw new Error("bad");
+      fileHandle = hdl; autoFileSave = true;
+      loadProject(p);
+      fileDirty = false; setFileLabel();
+      toast("Opened " + f.name + " — " + p.pages.length + " page(s).");
+    }catch(e){
+      if(e && e.name==="AbortError") return;
+      toast("That doesn't look like a scrapbook project file.");
+    }
+    return;
+  }
+  projPick.value=""; projPick.click();
+}
+
+document.getElementById("btnSave").onclick = saveProject;
+document.getElementById("btnSaveAs").onclick = saveAs;
+document.getElementById("btnOpen").onclick = openProject;
+
+/* quietly write back to the open file every minute */
+setInterval(()=>{
+  if(FSA && fileHandle && fileDirty && autoFileSave)
+    writeHandle().catch(()=>{ autoFileSave = false; });
+}, 60000);
+
+window.addEventListener("beforeunload", e=>{
+  if(fileDirty){ e.preventDefault(); e.returnValue = ""; }
+});
+
+const projPick = document.getElementById("projPick");
+projPick.addEventListener("change", ()=>{
+  const f = projPick.files[0]; if(!f) return;
+  const fr = new FileReader();
+  fr.onload = ()=>{
+    try{
+      const p = JSON.parse(fr.result);
+      if(!p || !Array.isArray(p.pages)) throw new Error("bad");
+      loadProject(p);
+      toast("Opened " + (p.title||"project") + " — " + p.pages.length + " page(s).");
+    }catch(e){ toast("That doesn't look like a scrapbook project file."); }
+  };
+  fr.readAsText(f);
+});
+function loadProject(p){
+  const gained = mergeTemplates(p.templates);
+  project = p;
+  if(!SIZES[project.size]) project.size = "12x12";
+  project.pages.forEach(pg=>{
+    pg.id = pg.id || nid();
+    pg.zones = (pg.zones||[]).map(z=> z.type==="text"
+      ? Object.assign(txtZone(z.x,z.y,z.w,z.h), z)
+      : Object.assign(imgZone(z.x,z.y,z.w,z.h), z));
+  });
+  cur=0; sel=null; editingId=null;
+  selSize.value = project.size;
+  render(); drawList(); buildInsp();
+  if(gained) toast("Added " + gained + " template" + (gained===1?"":"s") + " from that project.");
+}
+
+/* ---- IndexedDB autosave ---- */
+let db = null, dirty = false;
+function openDB(){
+  return new Promise(res=>{
+    try{
+      const r = indexedDB.open("scrapbook-builder", 1);
+      r.onupgradeneeded = ()=>{ r.result.createObjectStore("state"); };
+      r.onsuccess = ()=>res(r.result);
+      r.onerror = ()=>res(null);
+    }catch(e){ res(null); }
+  });
+}
+function markDirty(){
+  dirty = true;
+  if(!fileDirty){ fileDirty = true; setFileLabel(); }
+}
+async function autosave(){
+  if(!dirty || !db) return;
+  dirty = false;
+  try{
+    const tx = db.transaction("state","readwrite");
+    tx.objectStore("state").put({at:Date.now(), project}, "current");
+  }catch(e){}
+}
+setInterval(autosave, 4000);
+window.addEventListener("beforeunload", autosave);
+
+async function tryRestore(){
+  db = await openDB();
+  if(!db) return;
+  try{
+    const tx = db.transaction("state","readonly");
+    const rq = tx.objectStore("state").get("current");
+    rq.onsuccess = ()=>{
+      const rec = rq.result;
+      if(rec && rec.project && Array.isArray(rec.project.pages)){
+        const n = rec.project.pages.length;
+        const when = new Date(rec.at).toLocaleString();
+        const bar = document.createElement("div");
+        bar.id = "toast"; bar.className = "show";
+        bar.style.pointerEvents = "auto";
+        bar.innerHTML = 'Unsaved work found from '+when+' ('+n+' page'+(n>1?"s":"")+'). ';
+        const b1 = document.createElement("button");
+        b1.className = "pri"; b1.textContent = "Restore";
+        b1.style.marginLeft = "8px";
+        b1.onclick = ()=>{ loadProject(rec.project); bar.remove(); };
+        const b2 = document.createElement("button");
+        b2.textContent = "Start fresh"; b2.style.marginLeft = "6px";
+        b2.onclick = ()=>bar.remove();
+        bar.appendChild(b1); bar.appendChild(b2);
+        document.body.appendChild(bar);
+      }
+    };
+  }catch(e){}
+}
+
+/* ============================================================
+   Export: PNG + PDF
+   ============================================================ */
+function canvasToBlob(c, type, q){
+  return new Promise(res=>c.toBlob(res, type, q));
+}
+
+document.getElementById("btnExportPng").onclick = async ()=>{
+  toast("Rendering page at 300 DPI…");
+  await allImagesReady([page()]);
+  const c = renderToCanvas(page(), 300);
+  const blob = await canvasToBlob(c, "image/png");
+  await saveBlob(safeName()+"-p"+(cur+1)+".png", blob);
+  toast("PNG exported — " + c.width + " × " + c.height + " px.");
+};
+
+document.getElementById("btnExportPdf").onclick = ()=>document.getElementById("mExport").classList.add("open");
+document.getElementById("expGo").onclick = async ()=>{
+  const scope = document.getElementById("expScope").value;
+  const dpi = parseInt(document.getElementById("expDpi").value,10);
+  const q = parseFloat(document.getElementById("expQ").value);
+  closeModal();
+  const pages = scope==="one" ? [page()] : project.pages;
+  toast("Rendering " + pages.length + " page(s) at " + dpi + " DPI…");
+  await allImagesReady(pages);
+  const sz = size();
+  const sheets = [];
+  for(let i=0;i<pages.length;i++){
+    const c = renderToCanvas(pages[i], dpi);
+    const blob = await canvasToBlob(c, "image/jpeg", q);
+    sheets.push({ bytes:new Uint8Array(await blob.arrayBuffer()),
+                  wPt: sz.w*72, hPt: sz.h*72 });
+    toast("Rendered page " + (i+1) + " of " + pages.length + "…");
+    await new Promise(r=>setTimeout(r,0));
+  }
+  const pdf = buildPDF(sheets, project.title || "Scrapbook");
+  await saveBlob(safeName()+".pdf", new Blob([pdf], {type:"application/pdf"}));
+  toast("PDF exported — " + sheets.length + " page(s) at " + sz.w + "×" + sz.h + " in.");
+};
+
+/* Minimal PDF writer: one full-bleed JPEG per page. */
+function buildPDF(sheets, title){
+  const enc = new TextEncoder();
+  const parts = [];
+  let pos = 0;
+  const off = {};
+  function w(d){
+    if(typeof d === "string") d = enc.encode(d);
+    parts.push(d); pos += d.length;
+  }
+  function obj(num, fn){ off[num] = pos; w(num+" 0 obj\n"); fn(); w("endobj\n"); }
+
+  w(new Uint8Array([0x25,0x50,0x44,0x46,0x2d,0x31,0x2e,0x34,0x0a]));          /* %PDF-1.4 */
+  w(new Uint8Array([0x25,0xE2,0xE3,0xCF,0xD3,0x0a]));                          /* binary marker */
+
+  const n = sheets.length;
+  const pageNum = i => 4 + i*3, imgNum = i => 5 + i*3, cntNum = i => 6 + i*3;
+  const maxNum = 3 + n*3;
+
+  obj(1, ()=>w("<< /Type /Catalog /Pages 2 0 R >>\n"));
+  obj(2, ()=>{
+    const kids = sheets.map((_,i)=>pageNum(i)+" 0 R").join(" ");
+    w("<< /Type /Pages /Count "+n+" /Kids ["+kids+"] >>\n");
+  });
+  obj(3, ()=>{
+    const t = String(title).replace(/[\\()]/g, m=>"\\"+m);
+    w("<< /Title ("+t+") /Producer (Scrapbook Press) >>\n");
+  });
+
+  sheets.forEach((s,i)=>{
+    obj(pageNum(i), ()=>w(
+      "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 "+s.wPt.toFixed(2)+" "+s.hPt.toFixed(2)+"] "
+      + "/Resources << /XObject << /Im0 "+imgNum(i)+" 0 R >> >> "
+      + "/Contents "+cntNum(i)+" 0 R >>\n"));
+    obj(imgNum(i), ()=>{
+      const d = jpegSize(s.bytes);
+      w("<< /Type /XObject /Subtype /Image /Width "+d.w+" /Height "+d.h
+        + " /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length "
+        + s.bytes.length+" >>\nstream\n");
+      w(s.bytes);
+      w("\nendstream\n");
+    });
+    obj(cntNum(i), ()=>{
+      const cs = "q "+s.wPt.toFixed(2)+" 0 0 "+s.hPt.toFixed(2)+" 0 0 cm /Im0 Do Q\n";
+      w("<< /Length "+cs.length+" >>\nstream\n"+cs+"endstream\n");
+    });
+  });
+
+  const xref = pos;
+  w("xref\n0 "+(maxNum+1)+"\n");
+  w("0000000000 65535 f \n");
+  for(let i=1;i<=maxNum;i++)
+    w(String(off[i]||0).padStart(10,"0")+" 00000 n \n");
+  w("trailer\n<< /Size "+(maxNum+1)+" /Root 1 0 R /Info 3 0 R >>\nstartxref\n"+xref+"\n%%EOF\n");
+
+  const total = parts.reduce((a,p)=>a+p.length,0);
+  const out = new Uint8Array(total);
+  let o = 0;
+  for(const p of parts){ out.set(p, o); o += p.length; }
+  return out;
+}
+
+/* read dimensions out of the JPEG headers */
+function jpegSize(b){
+  let i = 2;
+  while(i < b.length-1){
+    if(b[i] !== 0xFF){ i++; continue; }
+    const m = b[i+1];
+    if(m === 0xD8 || m === 0x01 || (m >= 0xD0 && m <= 0xD7)){ i += 2; continue; }
+    const len = (b[i+2]<<8) | b[i+3];
+    if(m >= 0xC0 && m <= 0xCF && m !== 0xC4 && m !== 0xC8 && m !== 0xCC){
+      return { h:(b[i+5]<<8)|b[i+6], w:(b[i+7]<<8)|b[i+8] };
+    }
+    i += 2 + len;
+  }
+  return {w:1,h:1};
+}
+
+/* ============================================================
+   Misc
+   ============================================================ */
+let toastTimer = null;
+function toast(msg){
+  const t = document.getElementById("toast");
+  if(!t) return;
+  t.textContent = msg; t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>t.classList.remove("show"), 2600);
+}
+
+/* first-run content */
+(function seed(){
+  const p = project.pages[0];
+  p.name = "Title";
+  p.zones[0].text = "2019";
+  p.zones[0].size = 56;
+  p.zones[1].text = "the year, finally";
+  loadUserTemplates();
+  render(); drawList(); buildInsp(); setFileLabel(); tryRestore();
+})();
+</script>
+</body>
+</html>
