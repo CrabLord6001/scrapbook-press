@@ -524,7 +524,10 @@
       <b>Ctrl/⌘+S</b> save &nbsp; <b>Ctrl/⌘+F</b> find a page<br>
       <b>PgUp / PgDn</b> previous / next page
     </div>
-    <div class="mfoot"><button class="pri" onclick="closeModal()">Got it</button></div>
+    <div class="mfoot">
+      <span class="hint" id="buildStamp" style="margin:0;flex:1"></span>
+      <button class="pri" onclick="closeModal()">Got it</button>
+    </div>
   </div>
 </div>
 
@@ -2673,6 +2676,15 @@ document.addEventListener("keydown", e=>{
 
 document.getElementById("btnPhotos").onclick = ()=>pickFilesFor(null);
 document.getElementById("btnTemplate").onclick = openTemplates;
+/* The server's own last-modified date for this file \u2014 nothing to keep in step
+   by hand, and it answers "is my browser showing the newest version?" */
+(function(){
+  const el = document.getElementById("buildStamp");
+  if(!el) return;
+  const d = new Date(document.lastModified);
+  el.textContent = isNaN(d) ? "" : ("Version of " + d.toLocaleString(undefined,
+    {year:"numeric",month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}));
+})();
 document.getElementById("btnHelp").onclick = ()=>document.getElementById("mHelp").classList.add("open");
 document.getElementById("btnAddImg").onclick = ()=>{
   pushUndo("addZone");
