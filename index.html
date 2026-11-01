@@ -41,7 +41,12 @@
   #bar{
     height:48px; display:flex; align-items:center; gap:8px; padding:0 10px;
     background:var(--panel); border-bottom:1px solid var(--line); position:relative; z-index:5;
+    /* on a narrow window the toolbar slides rather than hiding its right-hand buttons */
+    overflow-x:auto; overflow-y:hidden; scrollbar-width:none;
   }
+  #bar::-webkit-scrollbar{display:none}
+  /* the spacer gives up its width first; the buttons keep their own */
+  #bar button,#bar select,#bar span,#bar .sep{flex-shrink:0}
   #bar .brand{font-weight:700; letter-spacing:.02em; margin-right:6px; white-space:nowrap}
   #bar .brand span{color:var(--accent)}
   .sep{width:1px;height:24px;background:var(--line);margin:0 2px}
@@ -120,6 +125,18 @@
   }
   .zone .ph svg{opacity:.5}
   .zone.selzone{z-index:50}
+  .zone.overflowing{outline:1.5px dashed rgba(214,150,60,.95);outline-offset:-1px}
+  .zone .ovf{
+    position:absolute;right:0;bottom:0;background:#d6963c;color:#1a1206;
+    font:700 9.5px/1.6 -apple-system,"Segoe UI",sans-serif;letter-spacing:.03em;
+    padding:1px 5px;border-radius:5px 0 0 0;pointer-events:none;
+  }
+  .ovfwarn{
+    background:rgba(214,150,60,.14);border:1px solid rgba(214,150,60,.5);
+    border-radius:7px;padding:9px 10px;margin:4px 0 10px;font-size:12px;line-height:1.5;
+  }
+  .ovfwarn b{color:#e8ad52}
+  .ovfwarn .row{margin-top:8px}
   .selbox{position:absolute;pointer-events:none;z-index:60}
   .selbox .edge{position:absolute;inset:0;border:1.5px solid var(--accent2);box-shadow:0 0 0 1px rgba(0,0,0,.25)}
   .pguide{position:absolute;pointer-events:none;z-index:58;filter:drop-shadow(0 0 1.5px rgba(0,0,0,.7))}
@@ -344,6 +361,7 @@
   <button id="btnSave" title="Write all pages back to your project file on this computer">Save project</button>
   <button id="btnSaveAs" title="Choose where to keep your project file on this computer">Save project as…</button>
   <button id="btnOpen" title="Open a project file from this computer">Open project…</button>
+  <button id="btnZip" title="Pack the pages and every photo into one .zip file — for moving this project to another computer">Zip Transfer</button>
   <div class="sep"></div>
   <button id="btnExportPng">PNG</button>
   <button id="btnExportPdf" class="pri">Export PDF</button>
@@ -431,7 +449,8 @@
     <div id="recentList"></div>
     <div class="mfoot">
       <button onclick="closeModal()">Cancel</button>
-      <button class="pri" id="btnBrowse">Browse…</button>
+      <button id="btnBrowseFile">Open a single file…</button>
+      <button class="pri" id="btnBrowse">Open a folder…</button>
     </div>
   </div>
 </div>
@@ -481,7 +500,7 @@
     <h2>Scrapbook Press</h2>
     <div class="intro">
       <p>Welcome to Scrapbook Press, a free tool for arranging photos and text for easy exports into booklet publications.</p>
-      <p>I’ve designed the website to work by saving projects as a json file copy to your local desktop that is pulled into the editor and saved automatically every minute. You can press “Save project” to manually save or press ctrl+s. Using “Save project as…” creates a new file. After saving your first file on your next startup a pop-up will ask if you want to continue your last project or begin a new one.</p>
+      <p>I’ve designed the website to work by saving projects as a folder on your local desktop — a json file with your layout and writing, plus a copy of each photo — that is pulled into the editor and saved automatically every minute. You can press “Save project” to manually save or press ctrl+s. Using “Save project as…” creates a new folder. After saving your first project on your next startup a pop-up will ask if you want to continue your last project or begin a new one.</p>
       <p>This avoids any sign in to an external database, so nothing outside your local machine holds your photobook.</p>
       <p>The program comes with about a dozen templates of pages and you can start and save your own for future use.</p>
       <p>Please feel free to contact me for any <a href="#" class="tlink" id="feedbackLink">feedback</a>.</p>
@@ -702,7 +721,10 @@ function allImagesReady(pages){
 }
 
 /* Downscale on import so project files stay sane. */
-const MAXPX = 2400;
+/* 3600px across is 300 DPI on a 12-inch page — what the PDF export promises.
+   Photos are real files in the project folder now, so the old 2400 cap
+   (200 DPI) is no longer worth the quality it cost. */
+const MAXPX = 3600;
 function fileToZoneSrc(file){
   return new Promise((resolve,reject)=>{
     const fr = new FileReader();
@@ -713,7 +735,8 @@ function fileToZoneSrc(file){
       im.onload = ()=>{
         const keepAlpha = /png|svg|gif|webp/i.test(file.type);
         const s = Math.min(1, MAXPX/Math.max(im.width,im.height));
-        if(s>=1 && fr.result.length < 3_500_000){
+        /* an original already small enough goes in untouched, at its own quality */
+        if(s>=1 && fr.result.length < 9_000_000){
           resolve({src:fr.result, alpha:keepAlpha}); return;
         }
         const c = document.createElement("canvas");
@@ -850,6 +873,30 @@ function renderToCanvas(p, dpi){
   return c;
 }
 
+/* ---------- does this text actually fit when printed? ----------
+   Measured with the same wrapping the exporter uses, at print scale, so the
+   answer matches what comes out of the PDF rather than what the editor shows. */
+let _measCtx = null;
+function measCtx(){
+  if(!_measCtx) _measCtx = document.createElement("canvas").getContext("2d");
+  return _measCtx;
+}
+const overflowMap = new Map();          /* kept outside the project so it never saves */
+
+function textFit(z){
+  if(z.type !== "text" || !String(z.text||"").trim()) return {hidden:0, lines:0, fit:0};
+  const dpi = 300, sz = size();
+  const w = z.w * sz.w * dpi, h = z.h * sz.h * dpi;
+  const u = v => v*dpi/72;
+  const fs = u(z.size), pad = u(z.pad||0);
+  const g = measCtx();
+  g.font = (z.italic?"italic ":"") + (z.weight||400) + " " + fs + "px " + z.font;
+  const lines = wrapLines(g, z.text, Math.max(1, w - 2*pad));
+  const lh = fs * (z.lh||1.4);
+  const fit = Math.max(0, Math.floor((h - pad) / lh));
+  return { hidden: Math.max(0, lines.length - fit), lines: lines.length, fit };
+}
+
 /* ============================================================
    DOM render of the live page
    ============================================================ */
@@ -933,6 +980,15 @@ function render(){
       ta.addEventListener("pointerdown", e=>{ sel=z.id; drawSel(); buildInsp(); e.stopPropagation(); });
       d.appendChild(ta);
       if(z.id===editingId) setTimeout(()=>{ ta.focus(); },0);
+      const fitInfo = textFit(z);
+      overflowMap.set(z.id, fitInfo);
+      if(fitInfo.hidden > 0){
+        d.classList.add("overflowing");
+        const tag = document.createElement("div");
+        tag.className = "ovf";
+        tag.textContent = fitInfo.hidden + " HIDDEN";
+        d.appendChild(tag);
+      }
     }
     if(z.border>0){
       /* painted over the content, exactly as the canvas renderer strokes it */
@@ -1285,7 +1341,7 @@ async function placeFiles(files, firstTarget, px, py){
     }
     try{
       const r = await fileToZoneSrc(files[i]);
-      z.src = r.src; z.scale=1; z.ox=0; z.oy=0;
+      z.src = r.src; z.scale=1; z.ox=0; z.oy=0; photosDirty = true;
       if(r.alpha){ z.fit="contain"; z.bg=""; }
       sel = z.id;
       render();
@@ -1423,6 +1479,8 @@ function restoreSnap(s){
   cur = Math.max(0, Math.min(s.cur, project.pages.length-1));
   sel = s.sel; editingId = null;
   if(selSize) selSize.value = project.size;
+  /* an undo can bring a photo back after a save pruned it, so re-check the folder */
+  photosDirty = true;
   render(); drawList(); buildInsp(); markDirty();
 }
 /* A burst of the same kind of change inside a second counts as one step. */
@@ -1551,6 +1609,42 @@ function buildInsp(){
   }
 
   inspEl.appendChild(h('<h3>'+(z.type==="image"?"Image zone":"Text zone")+'</h3>'));
+
+  if(z.type === "text"){
+    const info = overflowMap.get(z.id) || textFit(z);
+    if(info.hidden > 0){
+      const warn = h('<div class="ovfwarn"></div>');
+      warn.appendChild(h('<div><b>'+info.hidden+' line'+(info.hidden===1?"":"s")
+        +' won\u2019t print.</b> The text is taller than its box, so the end is cut off.</div>'));
+      const row = h('<div class="row tight"></div>');
+
+      const bGrow = h('<button class="sm">Grow the box</button>');
+      bGrow.onclick = ()=>{
+        for(let i=0; i<40; i++){
+          const f = textFit(z);
+          if(f.hidden <= 0) break;
+          if(z.y + z.h >= 0.995){ toast("The box has reached the bottom of the page."); break; }
+          z.h = Math.min(1 - z.y, z.h + 0.02);
+        }
+        render(); queueThumbs(); markDirty(); buildInsp();
+      };
+
+      const bShrink = h('<button class="sm">Shrink the text</button>');
+      bShrink.onclick = ()=>{
+        for(let i=0; i<60; i++){
+          const f = textFit(z);
+          if(f.hidden <= 0) break;
+          if(z.size <= 5){ toast("The text is as small as it goes."); break; }
+          z.size = Math.max(5, Math.round((z.size - 0.5)*10)/10);
+        }
+        render(); queueThumbs(); markDirty(); buildInsp();
+      };
+
+      row.appendChild(bGrow); row.appendChild(bShrink);
+      warn.appendChild(row);
+      inspEl.appendChild(warn);
+    }
+  }
 
   if(z.type==="image"){
     inspEl.appendChild(h('<label class="fld" style="margin-top:4px">Photo</label>'));
@@ -2465,6 +2559,121 @@ async function saveBlob(filename, blob){
 function safeName(){
   return (project.title||"scrapbook").replace(/[^\w\- ]+/g,"").trim().replace(/\s+/g,"-") || "scrapbook";
 }
+/* ---------- photo store ----------
+   A project saved as a folder keeps its photos as real JPEG/PNG files beside a
+   small project.json. Photos are named from a hash of their content, so the
+   same picture used on ten pages is written to disk only once. */
+const srcBlob    = new Map();  /* src -> Blob, for photos read back off disk */
+const photoNames = new Map();  /* src -> file name inside photos/ */
+let photosDirty  = true;       /* have the pictures changed since the last folder write? */
+
+function hashStr(str){
+  let h = 0x811c9dc5;
+  for(let i=0;i<str.length;i++){ h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return (h>>>0).toString(16).padStart(8,"0");
+}
+function photoName(src){
+  let n = photoNames.get(src);
+  if(n) return n;
+  const png = /^data:image\/png/i.test(src) || (srcBlob.get(src)||{}).type === "image/png";
+  /* two passes over different parts of the data: cheap, and enough to keep photos apart */
+  n = "p" + hashStr(src) + hashStr(src.slice(Math.floor(src.length/2)))
+    + "." + (png ? "png" : "jpg");
+  photoNames.set(src, n);
+  return n;
+}
+async function srcToBlob(src){
+  const known = srcBlob.get(src);
+  if(known) return known;
+  const bl = await (await fetch(src)).blob();   /* works for data: and blob: URLs alike */
+  srcBlob.set(src, bl);
+  return bl;
+}
+
+/* the layout on its own, with each photo referenced by file name */
+function folderManifest(){
+  const out = { version:2, format:"folder", title:project.title, size:project.size,
+                pages:[], templates:userTemplates };
+  const used = new Set();
+  for(const pg of project.pages){
+    const zones = pg.zones.map(z=>{
+      const c = Object.assign({}, z);
+      if(c.type === "image"){
+        if(c.src){ c.photo = photoName(c.src); used.add(c.photo); }
+        delete c.src;
+      }
+      return c;
+    });
+    out.pages.push(Object.assign({}, pg, {zones}));
+  }
+  return { manifest:out, used };
+}
+
+async function saveFolder(dir, writePhotos){
+  const { manifest, used } = folderManifest();
+
+  if(writePhotos){
+    const photos = await dir.getDirectoryHandle("photos", {create:true});
+    const done = new Set();
+    for(const pg of project.pages){
+      for(const z of pg.zones){
+        if(z.type !== "image" || !z.src) continue;
+        const name = photoName(z.src);
+        if(done.has(name)) continue;
+        done.add(name);
+        let there = false;
+        try{ await photos.getFileHandle(name); there = true; }catch(e){}
+        if(there) continue;                      /* same content, already written */
+        const blob = await srcToBlob(z.src);
+        const w = await (await photos.getFileHandle(name, {create:true})).createWritable();
+        await w.write(blob);
+        await w.close();
+      }
+    }
+    /* drop photos no page uses any more */
+    try{
+      const stale = [];
+      for await (const [name] of photos.entries()) if(!used.has(name)) stale.push(name);
+      for(const name of stale){ try{ await photos.removeEntry(name); }catch(e){} }
+    }catch(e){}
+  }
+
+  const w = await (await dir.getFileHandle("project.json", {create:true})).createWritable();
+  await w.write(new Blob([JSON.stringify(manifest)], {type:"application/json"}));
+  await w.close();
+  photosDirty = false;
+}
+
+/* turn each z.photo back into a usable image, straight off the disk */
+async function attachPhotos(dir, p){
+  let photos = null, missing = 0;
+  try{ photos = await dir.getDirectoryHandle("photos"); }catch(e){}
+  for(const pg of p.pages){
+    for(const z of (pg.zones||[])){
+      if(z.type !== "image" || !z.photo) continue;
+      const name = z.photo;
+      delete z.photo;
+      if(!photos){ missing++; continue; }
+      try{
+        const f = await (await photos.getFileHandle(name)).getFile();
+        const url = URL.createObjectURL(f);
+        z.src = url;
+        srcBlob.set(url, f);
+        photoNames.set(url, name);
+      }catch(e){ missing++; }
+    }
+  }
+  return missing;
+}
+
+async function readFolder(dir){
+  const jf = await (await dir.getFileHandle("project.json")).getFile();
+  const p = JSON.parse(await jf.text());
+  if(!p || !Array.isArray(p.pages)) throw new Error("bad");
+  const missing = await attachPhotos(dir, p);
+  return { project:p, missing };
+}
+
 function projectBlob(){
   /* carry the template library in the file so it survives a move to another machine */
   const out = Object.assign({}, project, {templates:userTemplates});
@@ -2482,19 +2691,28 @@ setInterval(()=>{
     toast("This project isn't in a file yet — use Save as… so clearing your browser can't take it.");
 }, 240000);
 
+const isFolder = h => !!h && h.kind === "directory";
+
 function setFileLabel(){
   const el = document.getElementById("fname");
   if(!el) return;
-  el.textContent = (fileDirty ? "• " : "") + (fileHandle ? fileHandle.name : "no project file");
+  const mark = isFolder(fileHandle) ? "▧ " : "";
+  el.textContent = (fileDirty ? "• " : "") + (fileHandle ? mark + fileHandle.name : "no project file");
   el.classList.toggle("unsaved", !fileHandle);
-  el.title = fileHandle
-    ? ("Every page is saved into " + fileHandle.name + " on this computer")
-    : "Your pages are not in a file yet — use Save project as…";
+  el.title = !fileHandle
+    ? "Your pages are not saved yet — use Save project as…"
+    : isFolder(fileHandle)
+      ? ("Saved into the folder " + fileHandle.name + " — layout in project.json, pictures in photos/")
+      : ("Every page is saved into " + fileHandle.name + " on this computer");
 }
 async function writeHandle(){
-  const w = await fileHandle.createWritable();
-  await w.write(projectBlob());
-  await w.close();
+  if(isFolder(fileHandle)){
+    await saveFolder(fileHandle, photosDirty);
+  } else {
+    const w = await fileHandle.createWritable();
+    await w.write(projectBlob());
+    await w.close();
+  }
   fileDirty = false; savedOnce = true; setFileLabel();
 }
 async function saveProject(){
@@ -2508,7 +2726,23 @@ async function saveProject(){
   }
   return saveAs();
 }
+const DIRPICK = (typeof window.showDirectoryPicker === "function");
+
 async function saveAs(){
+  if(DIRPICK){
+    try{
+      const dir = await window.showDirectoryPicker({mode:"readwrite", startIn:"documents"});
+      fileHandle = dir; autoFileSave = true; photosDirty = true;
+      await writeHandle();
+      recordRecent(dir);
+      toast("Saved into " + dir.name + " \u2014 layout and photos together.");
+      return;
+    }catch(e){
+      if(e && e.name==="AbortError") return;
+      toast("Couldn't write into that folder. Try one in your Documents.");
+      return;
+    }
+  }
   if(FSA){
     try{
       fileHandle = await window.showSaveFilePicker({
@@ -2528,6 +2762,93 @@ async function saveAs(){
   fileDirty = false; savedOnce = true; setFileLabel();
   toast("Project saved to your downloads folder.");
 }
+/* ---------- one .zip of the whole project, for emailing ---------- */
+const CRC_TABLE = (()=>{
+  const t = new Uint32Array(256);
+  for(let n=0;n<256;n++){
+    let c = n;
+    for(let k=0;k<8;k++) c = (c & 1) ? (0xEDB88320 ^ (c>>>1)) : (c>>>1);
+    t[n] = c>>>0;
+  }
+  return t;
+})();
+function crc32(u8){
+  let c = 0xFFFFFFFF;
+  for(let i=0;i<u8.length;i++) c = CRC_TABLE[(c ^ u8[i]) & 0xFF] ^ (c>>>8);
+  return (c ^ 0xFFFFFFFF)>>>0;
+}
+/* stored, not compressed: photos don't shrink, and this keeps the writer small */
+function zipBlob(files){
+  const enc = new TextEncoder(), now = new Date();
+  const tm = ((now.getHours()<<11) | (now.getMinutes()<<5) | (now.getSeconds()>>1)) & 0xFFFF;
+  const dt = (((now.getFullYear()-1980)<<9) | ((now.getMonth()+1)<<5) | now.getDate()) & 0xFFFF;
+  const body = [], central = [];
+  let offset = 0;
+  for(const f of files){
+    const name = enc.encode(f.name), crc = crc32(f.data), n = f.data.length;
+    const lh = new DataView(new ArrayBuffer(30));
+    lh.setUint32(0, 0x04034b50, true);
+    lh.setUint16(4, 20, true); lh.setUint16(6, 0x0800, true);   /* UTF-8 names */
+    lh.setUint16(8, 0, true);                                   /* stored */
+    lh.setUint16(10, tm, true); lh.setUint16(12, dt, true);
+    lh.setUint32(14, crc, true); lh.setUint32(18, n, true); lh.setUint32(22, n, true);
+    lh.setUint16(26, name.length, true);
+    body.push(new Uint8Array(lh.buffer), name, f.data);
+
+    const ch = new DataView(new ArrayBuffer(46));
+    ch.setUint32(0, 0x02014b50, true);
+    ch.setUint16(4, 20, true); ch.setUint16(6, 20, true);
+    ch.setUint16(8, 0x0800, true); ch.setUint16(10, 0, true);
+    ch.setUint16(12, tm, true); ch.setUint16(14, dt, true);
+    ch.setUint32(16, crc, true); ch.setUint32(20, n, true); ch.setUint32(24, n, true);
+    ch.setUint16(28, name.length, true);
+    ch.setUint32(42, offset, true);
+    central.push(new Uint8Array(ch.buffer), name);
+    offset += 30 + name.length + n;
+  }
+  let csize = 0;
+  for(const c of central) csize += c.length;
+  const eo = new DataView(new ArrayBuffer(22));
+  eo.setUint32(0, 0x06054b50, true);
+  eo.setUint16(8, files.length, true); eo.setUint16(10, files.length, true);
+  eo.setUint32(12, csize, true); eo.setUint32(16, offset, true);
+  return new Blob(body.concat(central, [new Uint8Array(eo.buffer)]), {type:"application/zip"});
+}
+
+const ZIP_NOTE =
+  "This is a Scrapbook Press project, still being worked on.\r\n\r\n" +
+  "To pick it up on this computer:\r\n" +
+  "  1. Unzip this file first. Opening it straight from inside the zip will not work.\r\n" +
+  "  2. Go to https://scrapbookpress.com in Chrome or Edge.\r\n" +
+  "  3. Click \"Open project\u2026\", then \"Open a folder\u2026\".\r\n" +
+  "  4. Pick the folder you just unzipped \u2014 the one holding project.json.\r\n\r\n" +
+  "project.json holds the pages and the writing. photos/ holds the pictures,\r\n" +
+  "as ordinary JPEGs you can open or copy on their own.\r\n";
+
+async function exportZip(){
+  toast("Packing the project\u2026");
+  const enc = new TextEncoder();
+  const files = [
+    { name:"project.json", data: enc.encode(JSON.stringify(folderManifest().manifest)) },
+    { name:"HOW TO OPEN.txt", data: enc.encode(ZIP_NOTE) }
+  ];
+  const done = new Set();
+  for(const pg of project.pages){
+    for(const z of pg.zones){
+      if(z.type !== "image" || !z.src) continue;
+      const name = photoName(z.src);
+      if(done.has(name)) continue;
+      done.add(name);
+      const blob = await srcToBlob(z.src);
+      files.push({ name:"photos/"+name, data:new Uint8Array(await blob.arrayBuffer()) });
+    }
+  }
+  const zip = zipBlob(files);
+  await saveBlob(safeName()+".zip", zip);
+  toast("Zipped " + done.size + " photo(s), " + Math.round(zip.size/1048576*10)/10
+      + " MB \u2014 check your downloads folder.");
+}
+
 /* ---------- recent projects ---------- */
 const RECENT_MAX = 8;
 
@@ -2624,15 +2945,24 @@ async function openFromHandle(hdl, key){
       if(perm !== "granted") perm = await hdl.requestPermission({mode:"readwrite"});
       if(perm !== "granted"){ toast("Chrome wasn't given permission to open that file."); return; }
     }
-    const f = await hdl.getFile();
-    const p = JSON.parse(await f.text());
+    let p, label, missing = 0;
+    if(isFolder(hdl)){
+      const r = await readFolder(hdl);
+      p = r.project; missing = r.missing; label = hdl.name;
+    } else {
+      const f = await hdl.getFile();
+      p = JSON.parse(await f.text());
+      label = f.name;
+    }
     if(!p || !Array.isArray(p.pages)) throw new Error("bad");
     fileHandle = hdl; autoFileSave = true;
     loadProject(p);
-    fileDirty = false; savedOnce = true; setFileLabel();
+    fileDirty = false; savedOnce = true; photosDirty = false; setFileLabel();
     closeModal();
     recordRecent(hdl);
-    toast("Opened " + f.name + " \u2014 " + p.pages.length + " page(s).");
+    toast(missing
+      ? ("Opened " + label + " \u2014 but " + missing + " photo(s) are missing from photos/.")
+      : ("Opened " + label + " \u2014 " + p.pages.length + " page(s)."));
   }catch(e){
     if(e && (e.name==="NotFoundError" || e.name==="NotReadableError")){
       toast("That file has been moved, renamed or deleted.");
@@ -2643,6 +2973,16 @@ async function openFromHandle(hdl, key){
   }
 }
 
+async function browseFolder(){
+  if(!DIRPICK) return browseProject();
+  try{
+    const dir = await window.showDirectoryPicker({mode:"readwrite", startIn:"documents"});
+    return await openFromHandle(dir);
+  }catch(e){
+    if(e && e.name==="AbortError") return;
+    toast("That folder has no project.json in it.");
+  }
+}
 async function browseProject(){
   try{
     const [hdl] = await window.showOpenFilePicker({
@@ -2666,15 +3006,19 @@ async function browseProject(){
 async function openProject(){
   if(!FSA){ projPick.value=""; projPick.click(); return; }
   const list = await recentsAll();
-  if(!list.length) return browseProject();
+  if(!list.length) return browseFolder();
   await renderRecents();
   document.getElementById("mRecent").classList.add("open");
 }
-document.getElementById("btnBrowse").onclick = browseProject;
+document.getElementById("btnBrowse").onclick = browseFolder;
+document.getElementById("btnBrowseFile").onclick = browseProject;
 
 document.getElementById("btnSave").onclick = saveProject;
 document.getElementById("btnSaveAs").onclick = saveAs;
 document.getElementById("btnOpen").onclick = openProject;
+document.getElementById("btnZip").onclick = ()=>exportZip().catch(e=>{
+  console.warn(e); toast("Couldn't build the zip.");
+});
 
 /* quietly write back to the open file every minute */
 setInterval(()=>{
@@ -2739,7 +3083,12 @@ function markDirty(){
 async function autosave(){
   if(!dirty || !db) return;
   dirty = false;
-  const rec = {at:Date.now(), project};
+  /* a folder project keeps its photos on disk already, so the backup is the
+     layout alone — about 40 KB instead of tens of megabytes */
+  const folder = isFolder(fileHandle);
+  const rec = folder
+    ? {at:Date.now(), folder:true, project:folderManifest().manifest}
+    : {at:Date.now(), project};
   try{
     /* keep the file reference too, so a restore reconnects to the real file */
     const tx = db.transaction("state","readwrite");
@@ -2765,8 +3114,13 @@ function readAutosave(){
   });
 }
 async function restoreAutosave(rec){
+  let missing = 0;
+  if(rec.folder && rec.handle){
+    try{ missing = await attachPhotos(rec.handle, rec.project); }
+    catch(e){ toast("Couldn't read the photos folder."); }
+  }
   loadProject(rec.project);
-  fileDirty = false;
+  fileDirty = false; photosDirty = false;
   /* reattach the file if we kept a reference, so Ctrl+S writes back to it */
   if(rec.handle){
     try{
@@ -2781,9 +3135,11 @@ async function restoreAutosave(rec){
   }
   setFileLabel();
   closeModal();
-  toast(fileHandle
-    ? ("Picked up where you left off \u2014 saving to " + fileHandle.name)
-    : "Restored your unsaved work. Use Save project as\u2026 to put it in a file.");
+  toast(missing
+    ? ("Picked up where you left off \u2014 but " + missing + " photo(s) are missing from photos/.")
+    : fileHandle
+      ? ("Picked up where you left off \u2014 saving to " + fileHandle.name)
+      : "Restored your unsaved work. Use Save project as\u2026 to put it in a file.");
 }
 
 async function startup(){
