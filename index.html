@@ -49,6 +49,7 @@
   .pnum{position:absolute; pointer-events:none;
         font-family:Georgia,"Times New Roman",serif; user-select:none}
   /* the safe-margin guide is editor-only and never reaches the PDF */
+  .ph.pending{outline:2px dashed rgba(232,173,82,.75); outline-offset:-4px}
   .marginGuide{position:absolute; pointer-events:none;
                border:1px dashed rgba(232,173,82,.75)}
   .chk{display:flex; align-items:center; gap:7px; margin:5px 0;
@@ -1087,9 +1088,19 @@ function render(){
           + '<path d="M3 17l5-4 3.5 3L15 12l6 5"/></svg>';
         const add = document.createElement("button");
         add.className = "add";
-        add.textContent = "Add photo";
+        /* a frame whose picture is on disk but wasn't read is not an empty frame,
+           and saying so beats leaving someone staring at a blank box */
+        const pending = !!z.photo;
+        add.textContent = pending ? "Reload photo" : "Add photo";
+        if(pending){
+          ph.classList.add("pending");
+          add.title = "This photo is in the project's photos folder but hasn't been read yet.";
+        }
         add.addEventListener("pointerdown", e=>e.stopPropagation());
-        add.addEventListener("click", e=>{ e.stopPropagation(); sel=z.id; pickFilesFor(z); });
+        add.addEventListener("click", e=>{
+          e.stopPropagation(); sel = z.id;
+          if(pending) reloadPhotos(); else pickFilesFor(z);
+        });
         ph.appendChild(add);
         d.appendChild(ph);
       }
@@ -2763,7 +2774,10 @@ function folderManifest(){
     const zones = pg.zones.map(z=>{
       const c = Object.assign({}, z);
       if(c.type === "image"){
-        if(c.src){ c.photo = photoName(c.src); used.add(c.photo); }
+        if(c.src) c.photo = photoName(c.src);
+        /* a photo that failed to load still has its name here; keeping it means
+           a bad read can't erase the link or get the file pruned */
+        if(c.photo) used.add(c.photo);
         delete c.src;
       }
       return c;
@@ -2809,6 +2823,30 @@ async function saveFolder(dir, writePhotos){
 }
 
 /* turn each z.photo back into a usable image, straight off the disk */
+/* Re-read the pictures for a project whose folder is open but whose photos
+   never made it in \u2014 usually because Chrome had not been given access yet. */
+async function reloadPhotos(){
+  if(!isFolder(fileHandle)){
+    toast("Open the project's folder first \u2014 Open project\u2026 \u2192 Open a folder\u2026");
+    return;
+  }
+  if(!(await grantAccess(fileHandle))){
+    toast("Chrome wasn't given permission to read that folder.");
+    return;
+  }
+  const missing = await attachPhotos(fileHandle, project);
+  render(); queueThumbs(); buildInsp();
+  toast(missing
+    ? (missing + " photo(s) are still missing from the photos folder.")
+    : "Photos reloaded.");
+}
+
+function countPhotoRefs(p){
+  let n = 0;
+  for(const pg of (p.pages||[]))
+    for(const z of (pg.zones||[])) if(z.type === "image" && z.photo) n++;
+  return n;
+}
 async function attachPhotos(dir, p){
   let photos = null, missing = 0;
   try{ photos = await dir.getDirectoryHandle("photos"); }catch(e){}
@@ -2816,14 +2854,14 @@ async function attachPhotos(dir, p){
     for(const z of (pg.zones||[])){
       if(z.type !== "image" || !z.photo) continue;
       const name = z.photo;
-      delete z.photo;
-      if(!photos){ missing++; continue; }
+      if(!photos){ missing++; continue; }   /* keep z.photo: the link is still good */
       try{
         const f = await (await photos.getFileHandle(name)).getFile();
         const url = URL.createObjectURL(f);
         z.src = url;
         srcBlob.set(url, f);
         photoNames.set(url, name);
+        delete z.photo;                     /* only once the picture is really in hand */
       }catch(e){ missing++; }
     }
   }
@@ -3131,13 +3169,25 @@ async function renderRecents(){
   });
 }
 
+/* A handle saved in the browser comes back needing permission again after a
+   reload, and asking has to happen before any read \u2014 otherwise every file in
+   the folder fails and the project looks empty. */
+async function grantAccess(hdl){
+  if(!hdl || !hdl.queryPermission) return true;
+  try{
+    let perm = await hdl.queryPermission({mode:"readwrite"});
+    if(perm !== "granted" && hdl.requestPermission)
+      perm = await hdl.requestPermission({mode:"readwrite"});
+    return perm === "granted";
+  }catch(e){ return false; }
+}
+
 async function openFromHandle(hdl, key){
   if(!hdl){ toast("That project can't be reopened \u2014 browse for the file instead."); return; }
   try{
-    if(hdl.queryPermission){
-      let perm = await hdl.queryPermission({mode:"readwrite"});
-      if(perm !== "granted") perm = await hdl.requestPermission({mode:"readwrite"});
-      if(perm !== "granted"){ toast("Chrome wasn't given permission to open that file."); return; }
+    if(!(await grantAccess(hdl))){
+      toast("Chrome wasn't given permission to open that file.");
+      return;
     }
     let p, label, missing = 0;
     if(isFolder(hdl)){
@@ -3308,25 +3358,19 @@ function readAutosave(){
   });
 }
 async function restoreAutosave(rec){
-  let missing = 0;
+  let missing = 0, allowed = false;
+  /* permission first: reading the photos folder without it fails every file */
+  if(rec.handle) allowed = await grantAccess(rec.handle);
+  if(allowed){ fileHandle = rec.handle; autoFileSave = true; savedOnce = true; }
   if(rec.folder && rec.handle){
-    try{ missing = await attachPhotos(rec.handle, rec.project); }
-    catch(e){ toast("Couldn't read the photos folder."); }
+    if(!allowed) missing = countPhotoRefs(rec.project);
+    else{
+      try{ missing = await attachPhotos(rec.handle, rec.project); }
+      catch(e){ missing = countPhotoRefs(rec.project); }
+    }
   }
   loadProject(rec.project);
   fileDirty = false; photosDirty = false;
-  /* reattach the file if we kept a reference, so Ctrl+S writes back to it */
-  if(rec.handle){
-    try{
-      let perm = rec.handle.queryPermission
-        ? await rec.handle.queryPermission({mode:"readwrite"}) : "granted";
-      if(perm !== "granted" && rec.handle.requestPermission)
-        perm = await rec.handle.requestPermission({mode:"readwrite"});
-      if(perm === "granted"){
-        fileHandle = rec.handle; autoFileSave = true; savedOnce = true;
-      }
-    }catch(e){}
-  }
   setFileLabel();
   closeModal();
   toast(missing
