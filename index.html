@@ -3142,12 +3142,24 @@ async function restoreAutosave(rec){
       : "Restored your unsaved work. Use Save project as\u2026 to put it in a file.");
 }
 
+const SEEN_KEY = "scrapbook-seen-help";
 async function startup(){
   db = await openDB();
   const rec = await readAutosave();
   const recents = (await recentsAll()).slice(0, 4);
   const hasWork = rec && rec.project && Array.isArray(rec.project.pages);
-  if(!hasWork && !recents.length) return;      /* first visit: no card at all */
+  if(!hasWork && !recents.length){
+    /* Nothing saved anywhere, so this is someone's first time here: open the
+       help instead of dropping them into a blank page with no explanation.
+       Shown once — after that a blank editor means they already know it. */
+    try{
+      if(!localStorage.getItem(SEEN_KEY)){
+        localStorage.setItem(SEEN_KEY, "1");
+        document.getElementById("mHelp").classList.add("open");
+      }
+    }catch(e){ document.getElementById("mHelp").classList.add("open"); }
+    return;
+  }
 
   const wrap = document.getElementById("startList");
   wrap.innerHTML = "";
