@@ -891,16 +891,71 @@ function renderToCanvas(p, dpi){
 /* ---------- print margin ----------
    Anything closer to the edge than this risks being trimmed off by a book
    printer. Measured on the unrotated box, the same as the alignment guides. */
+/* What a zone actually puts ink on the page, in page fractions — which is
+   often well inside its box. Centered text leaves its box edges blank, and a
+   "whole image" photo doesn't reach the corners of its frame. Measuring the
+   box instead would flag pages that look perfectly fine. */
+function zoneInk(z, pg){
+  const sz = size();
+  const box = { x0:z.x, y0:z.y, x1:z.x+z.w, y1:z.y+z.h };
+  /* A zone's own background prints — the grey behind a letterboxed photo is
+     real ink — unless it happens to be the same color as the page. */
+  const pageBg = String((pg || page()).bg || "#ffffff").toLowerCase();
+  const bgShows = z.bg && String(z.bg).toLowerCase() !== pageBg;
+  if(bgShows || z.border > 0) return box;
+
+  if(z.type === "image"){
+    if(!z.src) return null;                     /* an empty frame prints nothing */
+    const rec = getImg(z.src);
+    if(!rec || !rec.ready) return box;
+    const wIn = z.w*sz.w, hIn = z.h*sz.h;
+    const q = imgRect(z, wIn, hIn, rec);
+    const x0 = Math.max(z.x, z.x + q.dx/sz.w),  y0 = Math.max(z.y, z.y + q.dy/sz.h);
+    const x1 = Math.min(box.x1, z.x + (q.dx+q.dw)/sz.w);
+    const y1 = Math.min(box.y1, z.y + (q.dy+q.dh)/sz.h);
+    return (x1 <= x0 || y1 <= y0) ? null : {x0,y0,x1,y1};
+  }
+
+  if(!String(z.text||"").trim()) return null;
+  const DPI = 300, u = v => v*DPI/72;
+  const W = z.w*sz.w*DPI, H = z.h*sz.h*DPI;
+  const fs = u(z.size), pad = u(z.pad||0);
+  const g = measCtx();
+  g.font = (z.italic?"italic ":"") + (z.weight||400) + " " + fs + "px " + z.font;
+  const lines = wrapLines(g, z.text, Math.max(1, W-2*pad));
+  const lh = fs*(z.lh||1.4), half = (lh-fs)/2, total = lines.length*lh;
+  let ty = pad;
+  if(z.valign==="middle")      ty = Math.max(pad, (H-total)/2);
+  else if(z.valign==="bottom") ty = Math.max(pad, H-pad-total);
+  let mnX=Infinity, mxX=-Infinity, mnY=Infinity, mxY=-Infinity;
+  lines.forEach((ln,i)=>{
+    if(!ln) return;                             /* a blank line draws nothing */
+    const lw = g.measureText(ln).width;
+    let tx = pad;
+    if(z.align==="center")     tx = (W-lw)/2;
+    else if(z.align==="right") tx = W-pad-lw;
+    const base = ty + i*lh + half + fs*0.80;
+    mnX = Math.min(mnX, tx);  mxX = Math.max(mxX, tx+lw);
+    mnY = Math.min(mnY, base - fs*0.80);        /* top of the capitals */
+    mxY = Math.max(mxY, base + fs*0.22);        /* bottom of the descenders */
+  });
+  if(mnX === Infinity) return null;
+  /* the renderer clips to the box, so ink can never escape it */
+  mnX = Math.max(0,mnX); mnY = Math.max(0,mnY);
+  mxX = Math.min(W,mxX); mxY = Math.min(H,mxY);
+  return { x0: z.x + mnX/(sz.w*DPI), y0: z.y + mnY/(sz.h*DPI),
+           x1: z.x + mxX/(sz.w*DPI), y1: z.y + mxY/(sz.h*DPI) };
+}
+
 function marginReport(){
   const m = project.margin.in, sz = size(), bad = [];
   project.pages.forEach((p,i)=>{
     let worst = 0;
     for(const z of p.zones){
-      if(z.type === "image" && !z.src) continue;                    /* empty frames don't print */
-      if(z.type === "text" && !String(z.text||"").trim()) continue;
-      const x0 = z.x*sz.w, y0 = z.y*sz.h;
-      const x1 = (z.x+z.w)*sz.w, y1 = (z.y+z.h)*sz.h;
-      worst = Math.max(worst, m-x0, m-y0, x1-(sz.w-m), y1-(sz.h-m));
+      const k = zoneInk(z, p);
+      if(!k) continue;
+      worst = Math.max(worst, m - k.x0*sz.w, m - k.y0*sz.h,
+                              k.x1*sz.w - (sz.w-m), k.y1*sz.h - (sz.h-m));
     }
     if(worst > 0.005) bad.push({ page:i+1, over:worst });           /* ignore a hair's width */
   });
@@ -1700,10 +1755,20 @@ function buildInsp(){
       mr.appendChild(h('<span class="hint" style="align-self:center">inches</span>'));
       inspEl.appendChild(mr);
       const rep = marginReport();
-      if(rep.bad.length)
-        inspEl.appendChild(h('<div class="hint"><b style="color:#e8ad52">' + rep.bad.length
-          + ' page' + (rep.bad.length===1?"":"s") + '</b> reach past it \u2014 pages '
-          + rep.bad.map(b=>b.page).join(", ") + '.</div>'));
+      if(rep.bad.length){
+        const one = rep.bad.length === 1;
+        const warn = h('<div class="hint"><b style="color:#e8ad52">' + rep.bad.length
+          + ' page' + (one?"":"s") + '</b> ' + (one?"reaches":"reach")
+          + ' past it \u2014 ' + (one?"page ":"pages ") + '</div>');
+        rep.bad.forEach((bd,i)=>{
+          if(i) warn.appendChild(document.createTextNode(", "));
+          const a = h('<a href="#" class="tlink">' + bd.page + '</a>');
+          a.onclick = e=>{ e.preventDefault(); gotoPage(bd.page-1); };
+          warn.appendChild(a);
+        });
+        warn.appendChild(document.createTextNode("."));
+        inspEl.appendChild(warn);
+      }
     }
 
       return;
